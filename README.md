@@ -1,27 +1,24 @@
-# 🚀 HEX Trading Bot + Data/Optimization Pipeline (PulseChain)
+# 🚀 PulseChain Trader Universal
 
-An end‑to‑end stack for HEX trading on PulseChain:
-- Real on‑chain data collection from PulseX (no synthetic data)
-- Walk‑forward (feed‑forward) strategy optimization on a unified 2‑year dataset
-- Modular strategy system + backtester and demo live trading
+An automated cryptocurrency trading bot for HEX token on PulseChain blockchain, featuring real-time price data from PulseX DEX, technical analysis strategies, and comprehensive backtesting/optimization pipeline.
 
-## 🎯 Features
+## 🎯 Key Features
 
-- **Demo Mode Trading**: Safe testing without real money
-- **Backtesting Engine**: Test strategies on historical data (OOS‑led metrics)
-- **Modular Strategy System**: Easy to add/modify trading strategies
-- **Real-time HTML Reports**: Interactive web-based dashboards
-- **CLI & Web Interface**: Both command-line and browser access
-- **Moving Average Crossover**: Built-in trend-following strategy
-- **PulseX Integration**: Direct integration with PulseX DEX
-- **Walk‑Forward Optimization**: OOS‑led selection with profit‑first, drawdown‑aware scoring
-- **Caching for Speed**: Persistent caches for block timestamps, Sync reserves, and swap events (coverage‑aware)
+- **100% Real On-Chain Data**: All price data fetched live from PulseChain - never simulated or synthetic
+- **Demo Mode Trading**: Safe testing with real prices but simulated execution (no real money)
+- **Modular Strategy System**: Extensive collection of technical analysis strategies
+- **Walk-Forward Optimization**: OOS-led strategy optimization on unified 2-year dataset
+- **Real-Time HTML Reports**: Interactive web dashboards with auto-refresh
+- **Comprehensive Backtesting**: Realistic fee simulation and performance tracking
+- **Data Collection Pipeline**: Automated OHLCV collection from PulseX swaps and sync events
 
-## 🧭 Real‑Data Policy (No Synthetic Data)
+## 🧭 Real-Data Policy (Critical)
 
-- All prices, volumes, reserves, and candles are derived strictly from on‑chain PulseX Swap/Sync events.
-- If a candle has no Sync inside its interval, reserve columns stay NaN (no forward‑fill, no interpolation).
-- Backtests use real prices; “demo mode” only simulates execution without spending real funds.
+**🚨 ABSOLUTE RULE: NO SYNTHETIC DATA**
+- All prices, volumes, reserves, and candles derived strictly from on-chain PulseX Swap/Sync events
+- If a candle has no Sync inside its interval, reserve columns stay NaN (no forward-fill, no interpolation)
+- Backtests use real prices; "demo mode" only simulates execution without spending real funds
+- Even in demo mode, all price data is 100% real blockchain data
 
 ## 📋 Requirements
 
@@ -34,99 +31,111 @@ An end‑to‑end stack for HEX trading on PulseChain:
 ### 1. Installation
 
 ```bash
-# Clone or download the project
+# Clone the repository
+git clone https://github.com/vuyelwadr/pulsechainTraderUniversal.git
 cd pulsechainTraderUniversal
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Create directories
-mkdir -p data html_reports data/.cache logs
+# Create necessary directories
+mkdir -p data html_reports logs
 ```
 
 ### 2. Configuration
 
-The `.env` file is already set up for demo mode. No additional configuration needed for testing.
-
-### 3. Collect Real OHLCV (strict on‑chain)
-
-The collector builds 5‑minute candles from PulseX swaps and attaches strict inside‑candle reserves from Sync events.
+The `.env` file is pre-configured for demo mode. For real data access, ensure:
 
 ```bash
-# 2‑year, 5‑minute dataset (recommended unified source for the optimizer)
+RPC_URL=https://rpc.pulsechain.com
+CHAIN_ID=369
+DEMO_MODE=true
+```
+
+### 3. Collect Real OHLCV Data
+
+The collector builds 5-minute candles from PulseX swaps with strict inside-candle reserves:
+
+```bash
+# 2-year unified dataset (recommended for optimization)
 python collectors/swap_ohlcv_collector.py \
   --days 730 --interval 5m \
   --workers 6 --chunk-size 12000 \
   --pin-rpc-per-worker \
   --log-file logs/collector_2y.log \
-  --out data/<asset>_ohlcv_<quote>_730day_5m.csv  # e.g., data/hex_ohlcv_dai_730day_5m.csv
+  --out data/pdai_ohlcv_dai_730day_5m.csv
 
-# Quick 1‑day sanity check
+# Quick 1-day sanity check
 python collectors/swap_ohlcv_collector.py --days 1 --interval 5m --workers 4 --chunk-size 20000
 ```
 
-Output CSV columns (optimizer‑ready):
-- `timestamp, open, high, low, close, volume, reserve_<asset>, reserve_<bridge>, block`
-
-Performance notes:
-- Persistent caches under `data/.cache/block_ts.sqlite`:
-  - `block_ts` (block → timestamp), `sync_reserves` (block → reserves), `swap_events` (decoded swaps), `coverage` (skip getLogs when range fully cached).
-- Re‑running overlapping windows is much faster thanks to caches. All cached values are 100% real on‑chain.
+**Performance Notes:**
+- Persistent caches under `data/.cache/block_ts.sqlite` for block timestamps, sync reserves, and swap events
+- Re-running overlapping windows is much faster due to coverage-aware caching
+- All cached values are 100% real on-chain data
 
 ### 4. Run Backtest
 
 ```bash
-# Run 30-day backtest
-python bot/hex_trading_bot.py --backtest
+# Run 30-day backtest with default strategy
+python bot/pulsechain_trading_bot.py --backtest
 
 # Custom backtest period
-python bot/hex_trading_bot.py --backtest --days 7
+python bot/pulsechain_trading_bot.py --backtest --days 7
 
 # Specific strategy
-python bot/hex_trading_bot.py --backtest --strategy MovingAverageCrossover
+python bot/pulsechain_trading_bot.py --backtest --strategy MovingAverageCrossover
 ```
 
-### 5. Live Trading (Demo Mode)
+### 5. Live Demo Trading
 
 ```bash
 # Start live demo trading
-python bot/hex_trading_bot.py --live
+python bot/pulsechain_trading_bot.py --live
 
 # The bot will:
-# - Fetch real HEX price data
-# - Generate trading signals
-# - Execute simulated trades
+# - Fetch real HEX price data from PulseChain
+# - Generate trading signals using real-time analysis
+# - Execute simulated trades (no real money)
 # - Create real-time HTML reports
 ```
 
-## 📊 Web Interface
+## 📊 Web Interface & Reports
 
-When running backtests or live trading, HTML reports are automatically generated in the `html_reports/` directory:
+HTML reports are automatically generated in `html_reports/`:
 
 - **Backtests**: `backtest_[strategy]_[timestamp].html`
-- **Live Trading**: `live_trading.html` (auto-refreshes)
+- **Live Trading**: `live_trading.html` (auto-refreshes every 10 seconds)
+- **Optimization Results**: Interactive dashboards with performance metrics
 
-Open these files in your browser to see:
+Open these files in your browser to view:
 - Portfolio performance charts
-- Trading signals and execution
-- Performance metrics
-- Real-time updates
+- Trading signals and execution history
+- Strategy performance metrics
+- Real-time price updates
 
-## 🔧 Strategies
+## 🔧 Strategy System
 
-### Moving Average Crossover (Default)
+### Built-in Strategies
 
-The built-in strategy uses:
-- **Short MA**: 10 periods (configurable)
-- **Long MA**: 30 periods (configurable)
-- **Signal Logic**: Buy when short MA crosses above long MA, sell when it crosses below
+The bot includes extensive strategy implementations in `strategies/`:
+
+- **Moving Average Crossover** (default)
+- **Grid Trading Strategies** (multiple variants)
+- **RSI-based Strategies**
+- **MACD Strategy**
+- **Bollinger Bands**
+- **Fibonacci Retracement**
+- **ATR Channel**
+- **Stochastic RSI**
+- **Volume Price Action**
+- **And many more...**
 
 ### Adding Custom Strategies
 
 1. Create a new file in `strategies/` directory
 2. Inherit from `BaseStrategy` class
-3. Implement `calculate_indicators()` and `generate_signals()` methods
-4. Add to bot in `hex_trading_bot.py`
+3. Implement required methods
 
 Example:
 ```python
@@ -134,11 +143,14 @@ from strategies.base_strategy import BaseStrategy
 
 class MyStrategy(BaseStrategy):
     def calculate_indicators(self, data):
-        # Your indicator calculations
+        # Add your technical indicators
+        data['my_indicator'] = calculate_my_indicator(data)
         return data
     
     def generate_signals(self, data):
-        # Your signal generation logic
+        # Generate buy/sell signals
+        data['buy_signal'] = (data['my_indicator'] > threshold)
+        data['sell_signal'] = (data['my_indicator'] < threshold)
         return data
 ```
 
@@ -204,42 +216,76 @@ DEMO BUY: 4567.8901 HEX at 0.00001234 DAI
 
 ```
 pulsechainTraderUniversal/
-├── hex_trading_bot.py      # Main bot class
-├── config.py               # Configuration and constants
-├── data_handler.py         # Price data management
-├── backtest_engine.py      # Backtesting system
-├── html_generator.py       # HTML report generation
+├── bot/
+│   ├── pulsechain_trading_bot.py    # Main bot orchestrator
+│   ├── backtest_engine.py           # Backtesting system
+│   ├── config.py                    # Configuration constants
+│   ├── data_handler.py              # Real price data fetching
+│   ├── html_generator.py            # HTML report generation
+│   └── trade_executor.py            # Trade execution logic
+├── collectors/
+│   ├── asset_data_collector.py      # Asset data collection
+│   ├── reserve_fetcher.py           # Reserve data fetching
+│   ├── rpc_load_balancer.py         # RPC load balancing
+│   └── swap_ohlcv_collector.py      # OHLCV data collection
 ├── strategies/
-│   ├── base_strategy.py    # Strategy base class
-│   └── ma_crossover.py     # Moving average strategy
-├── data/                   # Collected data + caches
-│   ├── <asset>_ohlcv_<quote>_730day_5m.csv   # Unified 2‑year 5m OHLCV (default: hex_ohlcv_dai_730day_5m.csv)
-│   └── .cache/
-│       └── block_ts.sqlite             # SQLite caches (block_ts, sync_reserves, swap_events, coverage)
-├── src/
-│   └── pipelines/
-│       └── runner.py                   # Multi‑stage walk‑forward optimizer (OOS‑led)
-├── scripts/
-│   └── aggregate.py                    # Aggregator (CSV + MD leaderboards)
-├── html_reports/           # Generated HTML reports
-├── .env                    # Configuration file
-└── requirements.txt        # Python dependencies
+│   ├── base_strategy.py             # Strategy base class
+│   ├── ma_crossover.py              # Moving average strategy
+│   ├── grid_trading_strategy*.py    # Grid trading variants
+│   ├── rsi_strategy.py              # RSI strategy
+│   ├── macd_strategy.py             # MACD strategy
+│   └── ... (many more strategies)
+├── optimization/
+│   ├── runner.py                    # Optimization pipeline
+│   ├── optimizer_bayes.py           # Bayesian optimizer
+│   ├── scoring_engine.py            # Performance scoring
+│   └── subagent_coordinator.py      # Multi-agent coordination
+├── data/
+│   ├── pdai_ohlcv_dai_730day_5m.csv # Unified 2-year dataset
+│   └── .cache/                      # SQLite caches for speed
+├── html_reports/                    # Generated HTML dashboards
+├── docs/                            # Documentation and analysis
+├── utils/                           # Utility functions
+├── .env                             # Environment configuration
+└── requirements.txt                 # Python dependencies
 ```
 
-## 🎛️ Command Line Options (Bot)
+## 🎛️ Command Line Options
+
+### Bot Commands
 
 ```bash
 # Backtest mode
-python bot/hex_trading_bot.py --backtest [--days N] [--strategy NAME]
+python bot/pulsechain_trading_bot.py --backtest [--days N] [--strategy NAME]
 
-# Live trading mode  
-python bot/hex_trading_bot.py --live [--demo]
+# Live demo trading
+python bot/pulsechain_trading_bot.py --live
 
-# Status check
-python bot/hex_trading_bot.py
+# Status check (shows current HEX price)
+python bot/pulsechain_trading_bot.py
 
 # Help
-python bot/hex_trading_bot.py --help
+python bot/pulsechain_trading_bot.py --help
+```
+
+### Data Collection
+
+```bash
+# OHLCV collection
+python collectors/swap_ohlcv_collector.py [options]
+
+# Reserve fetching
+python collectors/reserve_fetcher.py [options]
+```
+
+### Optimization
+
+```bash
+# Run optimization pipeline
+python -m optimization.runner [options]
+
+# Aggregate results
+python -m optimization.aggregate reports/optimizer_[timestamp]_[stage]
 ```
 
 ## 🧪 Optimization Pipeline (Walk‑Forward Defaults)
@@ -300,8 +346,80 @@ Tip: `--calls` is per fold; runtime ≈ strategies × timeframes × folds × cal
 - **HEX Contract**: `0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39`
 - **WPLS Contract**: `0xA1077a294dDE1B09bB078844df40758a5D0f9a27`
 - **DAI Contract**: `0xefD766cCb38EaF1dfd701853BFCe31359239F305`
-- **PulseX Router**: `0x165C3410fC91EF562C50559f7d2289fEbed552d9`
-- **Trading Route**: HEX → WPLS → DAI (uses HEX/WPLS + WPLS/DAI pools)
+- **PulseX Router V2**: `0x165C3410fC91EF562C50559f7d2289fEbed552d9`
+- **Trading Route**: HEX → WPLS → DAI (most liquid path on PulseX)
+
+## ⚠️ Important Disclaimers
+
+- **Demo Mode Only**: No real trading occurs - all trades are simulated
+- **Educational Purpose**: For learning and testing trading strategies
+- **No Financial Advice**: Past performance doesn't predict future results
+- **High Risk**: Cryptocurrency trading involves significant risk of loss
+- **DYOR**: Always do your own research
+
+## 🛡️ Safety Features
+
+- **Demo Mode**: No real money at risk
+- **Real Price Data**: Ensures realistic backtesting and demo trading
+- **Slippage Simulation**: Realistic fee and price impact modeling
+- **Position Limits**: Configurable trade size limits
+- **Error Handling**: Robust connection and data validation
+
+## 🔍 Monitoring & Troubleshooting
+
+### CLI Output
+```
+HEX Price: 0.00001234 DAI | Signal: BUY | Strength: 0.85
+DEMO BUY: 4567.89 HEX @ 0.00001234 DAI
+Portfolio: $1234.56 (+12.34%)
+```
+
+### Common Issues
+
+**Connection Problems:**
+- Verify `RPC_URL` in `.env`
+- Check internet connection
+- Try alternative PulseChain RPC endpoints
+
+**Data Collection Issues:**
+- NaN reserves are expected (strict on-chain only)
+- Re-runs are faster due to caching
+- Remove `data/.cache/` to rebuild from scratch
+
+**Strategy Issues:**
+- Check strategy parameters in `.env`
+- Verify minimum signal strength (default 0.6)
+- Validate indicator calculations
+
+## 🧠 Advanced Features
+
+- **Slippage Analysis**: Real on-chain slippage measurement
+- **Reserve Tracking**: Live liquidity pool monitoring
+- **Multi-Timeframe Analysis**: Strategies across different timeframes
+- **Performance Attribution**: Detailed trade-by-trade analysis
+- **HTML Dashboards**: Real-time web interface
+- **Optimization Pipeline**: Automated strategy parameter tuning
+
+## 📈 Understanding Metrics
+
+### Backtest Metrics
+- **Total Return**: Overall profit/loss percentage
+- **Win Rate**: Percentage of profitable trades
+- **Sharpe Ratio**: Risk-adjusted return
+- **Max Drawdown**: Largest peak-to-trough decline
+- **Profit Factor**: Gross profit / gross loss ratio
+- **Calmar Ratio**: Annual return / max drawdown
+
+### Signal Strength
+- **0.6+**: Execute trade
+- **0.8+**: Strong signal
+- **< 0.6**: Hold position
+
+---
+
+**Happy Trading on PulseChain! 🎯**
+
+Remember: This is demo mode only. Always test thoroughly and never risk more than you can afford to lose.
 
 ## ⚠️ Disclaimers
 
@@ -339,9 +457,9 @@ Tip: `--calls` is per fold; runtime ≈ strategies × timeframes × folds × cal
 
 ---
 
-**Happy Trading! 🎯**
+**Happy Trading on PulseChain! 🎯**
 
-Remember: This is demo mode only. Always test thoroughly before considering any real trading.
+Remember: This is demo mode only. Always test thoroughly and never risk more than you can afford to lose.
 
 
 
