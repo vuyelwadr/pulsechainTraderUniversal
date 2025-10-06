@@ -1712,14 +1712,14 @@ def stage_run(label: str,
 
 
 def select_top(results: List[Dict[str, Any]], top_n: int) -> List[str]:
-    # Aggregate best CPS across timeframes per strategy
+    # Aggregate best total_return_pct across timeframes per strategy
     best_by_strategy: Dict[str, float] = {}
     for r in results:
         s = r.get('strategy')
-        # Prefer objective 'score' if present; fall back to 'cps'
-        score_val = r.get('score', None)
+        # Use total_return_pct for ranking
+        score_val = r.get('total_return_pct', None)
         if score_val is None:
-            score_val = r.get('cps', 0.0)
+            score_val = 0.0
         try:
             val = float(score_val)
         except Exception:
