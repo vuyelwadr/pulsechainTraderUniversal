@@ -1,30 +1,32 @@
-# HEX Trading Bot Requirements
-# Core dependencies
-pandas>=2.0.0
+# PulseChain Trader Universal Requirements
+# Core data science and analysis
+pandas>=2.2.0
 numpy>=1.24.0
-web3>=6.10.0
-matplotlib>=3.7.0
-bokeh>=3.3.0
+
+# Blockchain interaction
+web3>=7.0.0
+eth-account>=0.13.0
+eth-typing>=5.0.0
+hexbytes>=1.0.0
+
+# Visualization
+bokeh>=3.4.0
+matplotlib>=3.8.0
+
+# Progress bars
 tqdm>=4.66.0
-pytz>=2023.3
+
+# Configuration
 python-dotenv>=1.0.0
+pytz>=2024.0
 
-# Data visualization
-Pillow>=10.1.0
-Jinja2>=3.1.0
+# Technical analysis
+TA-Lib>=0.6.0
 
-# Columnar storage (Parquet) for faster I/O during optimization
-pyarrow>=14.0.0
+# Optimization
+scikit-optimize>=0.10.0
 scikit-learn>=1.4.0
-scikit-optimize>=0.9.0
+scipy>=1.12.0
 
-# Network
-requests>=2.31.0
-urllib3>=2.0.0
-
-# Date/Time utilities
-python-dateutil>=2.8.0
-
-# Cryptography
-cryptography>=41.0.0
+# Web scraping (for screenshots)
 playwright>=1.45.0
