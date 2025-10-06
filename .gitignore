@@ -1,0 +1,142 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.Python
+develop-eggs/
+.installed.cfg
+*.egg-info/
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment & Sensitive Files
+.env
+*.key
+private_keys.txt
+wallet_info.txt
+secrets.json
+
+# Data & Cache Files
+data/*
+*.csv
+*.json.bak
+
+# Shared optimization datasets (allow tracked copies for remote agents)
+!data/*_ohlcv_*_5m.csv
+!data/*_price_history_*.csv
+*.backup
+cache/
+temp/
+tmp/
+
+# Generated Reports & Logs
+html_reports/
+*.html
+*.log
+logs/
+*.out
+
+# Test & Debug Files
+test_*.py
+debug_*.py
+simple_*.py
+quick_*.py
+
+# Old Optimizer Variations
+*_optimizer.py
+!archipelago_optimizer.py
+!archipelago_1year_optimizer.py
+monitor_*.py
+fast_results_*.py
+
+# Old Visualization Files
+visualize_best_*.py
+!visualize_strategy_fixed.py
+
+# Output Files
+*_output.txt
+*_result_*.json
+*_results_*.json
+chart_test*.png
+optimization_results/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Node.js (if any JS tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Deployment
+deploy/
+*.zip
+*.tar.gz
+
+# Backup files
+*.bak
+*.orig
+*~
+
+# Large model files or data
+*.model
+*.pkl
+*.pickle
+
+# OS generated files
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.apdisk
+
+reports/*
+reports*/
+reports*/**
+!reports/gridTradeAggressive
+reports/gridTradeAggressive/*
+!reports/gridTradeAggressive/best_current
+reports/gridTradeAggressive/best_current/*
+!reports/gridTradeAggressive/best_current/best_params.json
+!reports/gridTradeAggressive/best_current/metadata.json
+!reports/gridTradeAggressive/best_current/result.json

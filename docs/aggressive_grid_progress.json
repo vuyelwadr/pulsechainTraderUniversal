@@ -1,0 +1,92 @@
+[
+  {
+    "final_balance": 7400.618121610859,
+    "seed": 1953149595,
+    "source": "reports/gridTradeAggressive/opt_run_20250919_030034/result.json",
+    "note": "initial aggressive tuning after final_balance objective"
+  },
+  {
+    "final_balance": 9380.95739211081,
+    "seed": 1953149595,
+    "source": "reports/gridTradeAggressive/iter_20250919_031301/seed_1953149595_20250919_001644/result.json"
+  },
+  {
+    "final_balance": 9983.13657173571,
+    "seed": 1169381939,
+    "source": "reports/gridTradeAggressive/iter_20250919_033208/seed_1169381939_20250919_004527/result.json",
+    "generated_at": "2025-09-19T00:48:43.310591+00:00"
+  },
+  {
+    "final_balance": 10952.349137187535,
+    "seed": 1356891162,
+    "source": "reports/gridTradeAggressive/iter_20250919_035149/seed_1356891162_20250919_005936/result.json"
+  },
+  {
+    "final_balance": 15878.035658834551,
+    "seed": 1425135392,
+    "source": "reports/gridTradeAggressive/iter_20250919_042705/seed_1425135392_20250919_020400/result.json"
+  },
+  {
+    "final_balance": 18511.032711228745,
+    "seed": null,
+    "source": "reports/gridTradeAggressive/evo_20250919_120557/generation_00.json#child_20",
+    "method": "evolutionary_perturbation",
+    "generated_at": "2025-09-19T12:05:59Z"
+  },
+  {
+    "final_balance": 25495.17063418724,
+    "seed": null,
+    "source": "reports/gridTradeAggressive/evo_20250919_133714/generation_00.json#child_28",
+    "method": "evolutionary_perturbation",
+    "generated_at": "2025-09-19T13:37:20Z"
+  },
+  {
+    "final_balance": 29086.441256954822,
+    "seed": null,
+    "source": "reports/gridTradeAggressive/evo_20250919_134128/generation_02.json#child_42",
+    "method": "evolutionary_perturbation",
+    "generated_at": "2025-09-19T13:41:45Z"
+  },
+  {
+    "final_balance": 40354.954207477735,
+    "seed": null,
+    "source": "reports/gridTradeAggressive/evo_20250919_134443/generation_03.json#child_9",
+    "method": "evolutionary_perturbation",
+    "generated_at": "2025-09-19T13:44:46Z"
+  },
+  {
+    "final_balance": 41649.04828810067,
+    "seed": null,
+    "source": "reports/gridTradeAggressive/evo_20250919_134845/generation_01.json#child_64",
+    "method": "evolutionary_perturbation",
+    "generated_at": "2025-09-19T13:48:48Z"
+  },
+  {
+    "final_balance": 45335.160508219444,
+    "seed": null,
+    "source": "reports/gridTradeAggressive/evo_20250919_135235/generation_04.json#child_36",
+    "method": "evolutionary_perturbation",
+    "generated_at": "2025-09-19T13:52:37Z"
+  },
+  {
+    "final_balance": 45497.76530045451,
+    "seed": null,
+    "source": "reports/gridTradeAggressive/evo_20250919_140325/generation_03.json#child_106",
+    "method": "evolutionary_perturbation",
+    "generated_at": "2025-09-19T14:03:28Z"
+  },
+  {
+    "final_balance": 49073.10150691689,
+    "seed": null,
+    "source": "manual_adjustment_2025-09-20 trail_atr_mult=0.7 trend_trail_pct=0.12",
+    "method": "manual_refinement",
+    "generated_at": "2025-09-20T06:50:35Z"
+  },
+  {
+    "final_balance": 51093.85580794166,
+    "seed": null,
+    "source": "reports/gridTradeAggressive/evo_20250920_0700/generation_02.json#child_92",
+    "method": "evolutionary_perturbation",
+    "generated_at": "2025-09-20T07:08:48Z"
+  }
+]

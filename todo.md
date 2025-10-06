@@ -1,0 +1,1 @@
+python your_optimizer_script.py --strategies-file vectorized_helpers_strategies.json --objectives mar,utility,cps,profit_biased,cps_v2,cps_v2_profit_biased,final_balance

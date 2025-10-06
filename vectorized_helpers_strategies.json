@@ -1,0 +1,30 @@
+{
+  "description": "Strategies that use vectorized_helpers and may not have run properly in the optimization",
+  "strategy_count": 23,
+  "strategies": [
+    "Strategy005BollingerKeltnerSqueeze",
+    "Strategy025ForecastOscillator",
+    "Strategy027UlcerIndex",
+    "Strategy045BearCOGFibChannel",
+    "Strategy061ConstanceBrownCompositeIndex",
+    "Strategy064ASIOscillator",
+    "Strategy072BetterVolume",
+    "Strategy074Butterworth2Pole",
+    "Strategy075Butterworth3Pole",
+    "Strategy077SuperSmoother3Pole",
+    "Strategy088SentimentZoneIndicator",
+    "Strategy092RelativeVolumeIndicator",
+    "Strategy107TrendTriggerFactor",
+    "Strategy112DEnvelope",
+    "Strategy118VervoortSmoothedOscillator",
+    "Strategy139VolatilityBasedTrailingStops",
+    "Strategy140BTCAllExchangesVolumeAveragedProxy",
+    "Strategy146WaddahAttarExplosion",
+    "Strategy155EhlersUniversalOscillator",
+    "Strategy163SarAlarmScript",
+    "Strategy164JustAnotherPivot",
+    "Strategy186ChandeCompositeMomentumIndex",
+    "Strategy200EhlersSmoothedAdaptiveMomentum"
+  ]
+}
+

@@ -1,0 +1,30 @@
+# HEX Trading Bot Requirements
+# Core dependencies
+pandas>=2.0.0
+numpy>=1.24.0
+web3>=6.10.0
+matplotlib>=3.7.0
+bokeh>=3.3.0
+tqdm>=4.66.0
+pytz>=2023.3
+python-dotenv>=1.0.0
+
+# Data visualization
+Pillow>=10.1.0
+Jinja2>=3.1.0
+
+# Columnar storage (Parquet) for faster I/O during optimization
+pyarrow>=14.0.0
+scikit-learn>=1.4.0
+scikit-optimize>=0.9.0
+
+# Network
+requests>=2.31.0
+urllib3>=2.0.0
+
+# Date/Time utilities
+python-dateutil>=2.8.0
+
+# Cryptography
+cryptography>=41.0.0
+playwright>=1.45.0
