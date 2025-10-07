@@ -14,6 +14,7 @@ import os
 from bot.config import Config
 from strategies.base_strategy import BaseStrategy
 from collectors.reserve_fetcher import get_reserve_fetcher
+from utils.swap_cost_cache import get_swap_cost_cache, SwapCostCacheError
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,13 @@ class BacktestEngine:
         self.slippage_pct = slippage_pct  # Store for open position valuation
         self.reserve_fetcher = get_reserve_fetcher()
         self.reset()
+        try:
+            self.swap_cost_cache = get_swap_cost_cache()
+        except SwapCostCacheError as exc:
+            raise RuntimeError(
+                "Swap cost cache unavailable; ensure the runner/backtest "
+                "initialised the Piteas swap cost cache before executing a backtest."
+            ) from exc
         
     def reset(self):
         """Reset backtest state"""
@@ -124,90 +132,68 @@ class BacktestEngine:
         if isinstance(timestamp, str):
             timestamp = pd.to_datetime(timestamp)
         
+        _ = volume_based_slippage  # retained for signature compatibility
         buy_signal = current_data.get('buy_signal', False)
         sell_signal = current_data.get('sell_signal', False)
         signal_strength = current_data.get('signal_strength', 0.0)
-        bar_volume = float(current_data.get('volume', 0) or 0)
         
         # Skip if no signal (signal_strength of 0 means no signal)
         # Let strategies control their own minimum thresholds
         if signal_strength <= 0:
             return
         
-        # Buy signal - enter long position
+        # Buy signal - enter long position using cached swap costs
         if buy_signal and self.position != 'long':
             if self.position == 'short':
-                # Close short position first (not implemented in this simple version)
+                # Support for short positions not implemented; ignore for now
                 pass
-            
-            # Enter long position (buy HEX with DAI via routing through WPLS)
+
             trade_amount = self.balance * Decimal(str(trade_amount_pct))
-            
+
             if trade_amount > Decimal('0.01'):  # Minimum trade amount
-                # Apply slippage - prefer volume-based model when available
-                if volume_based_slippage and bar_volume > 0:
-                    slippage_multiplier = self._calculate_volume_slippage(
-                        trade_amount,
-                        bar_volume,
-                        base_price,
-                        side='buy'
-                    )
+                cost_info = self.swap_cost_cache.compute_buy(trade_amount)
+                asset_received = cost_info['asset_received']
+                if asset_received > Decimal('0'):
+                    executed_price = cost_info['amount_in_dai'] / asset_received
                 else:
-                    slippage_multiplier = Decimal('1') + Decimal(str(slippage_pct))
-                price = base_price * slippage_multiplier
-                
-                # Calculate fees (simulate PulseX fees ~0.29%)
-                fee_rate = Decimal('0.0029')
-                fee = trade_amount * fee_rate
-                gas_fee = self.config.GAS_FEE_PER_TRADE
-                net_amount = trade_amount - fee - gas_fee
-                
-                # Calculate HEX amount received
-                hex_received = net_amount / price
-                
-                # Update balances
-                self.balance -= trade_amount
-                self.hex_balance += hex_received
-                self.total_fees += fee + gas_fee
-                
-                # Record trade
+                    executed_price = base_price
+
+                self.balance -= cost_info['amount_in_dai']
+                self.hex_balance += asset_received
+                self.total_fees += cost_info['cost_dai']
+
                 trade = {
                     'timestamp': timestamp,
                     'type': 'buy',
-                    'price': float(price),
-                    'quote_amount': float(trade_amount),
-                    'hex_amount': float(hex_received),
-                    'fee': float(fee),
+                    'price': float(executed_price),
+                    'quote_amount': float(cost_info['amount_in_dai']),
+                    'hex_amount': float(asset_received),
+                    'fee': float(cost_info['cost_dai']),
                     'signal_strength': signal_strength,
                     'balance_after': float(self.balance),
-                    'index': index
+                    'index': index,
+                    'slippage_pct': float(cost_info['loss_rate'] * Decimal('100')),
+                    'cost_rung_dai': float(cost_info['rung']),
+                    'cost_implied_sell_dai': float(cost_info['implied_sell_dai']),
+                    'cost_token_per_dai': float(cost_info['token_per_dai']),
+                    'cost_dai_per_token': float(cost_info['dai_per_token']),
+                    'cost_roundtrip_loss_dai': float(cost_info['roundtrip_loss_dai']),
                 }
-                
+
                 self.trades.append(trade)
-                
-                # Set position
+
                 self.position = 'long'
-                self.entry_price = price
+                self.entry_price = executed_price
                 self.entry_time = timestamp
-                
-                logger.debug(f"BUY: {hex_received:.4f} HEX at {price:.8f} DAI")
+
+                logger.debug(
+                    f"BUY: {asset_received:.4f} HEX at {executed_price:.8f} DAI "
+                    f"(cache rung {cost_info['rung']})"
+                )
         
         # Sell signal - exit long position
         elif sell_signal and self.position == 'long':
-            trade_size_quote = self.hex_balance * base_price if self.hex_balance > 0 else Decimal('0')
-            if volume_based_slippage and bar_volume > 0 and trade_size_quote > 0:
-                slippage_multiplier = self._calculate_volume_slippage(
-                    trade_size_quote,
-                    bar_volume,
-                    base_price,
-                    side='sell'
-                )
-            else:
-                # Apply fallback slippage - we receive less when selling
-                slippage_multiplier = Decimal('1') - Decimal(str(slippage_pct))
-                slippage_multiplier = max(slippage_multiplier, Decimal('0.5'))
-            price = base_price * slippage_multiplier
-            self._close_position(price, timestamp, 'sell_signal', signal_strength, index)
+            self._close_position(base_price, timestamp, 'sell_signal', signal_strength, index)
 
     def _calculate_volume_slippage(self, trade_size_quote: Decimal, bar_volume: float,
                                    base_price: Decimal, side: str) -> Decimal:
@@ -365,37 +351,33 @@ class BacktestEngine:
         if self.position != 'long' or self.hex_balance <= 0:
             return
         
-        # Calculate quote (DAI) amount received
-        quote_gross = self.hex_balance * price
-        
-        # Calculate fees
-        fee_rate = Decimal('0.0029')
-        fee = quote_gross * fee_rate
-        gas_fee = self.config.GAS_FEE_PER_TRADE
-        quote_net = quote_gross - fee - gas_fee
-        
-        # Update balances
-        self.balance += quote_net
         hex_sold = self.hex_balance
+        if hex_sold <= 0:
+            return
+
+        estimated_notional = hex_sold * price
+        cost_info = self.swap_cost_cache.compute_sell(hex_sold, estimated_notional)
+        quote_net = cost_info['net_dai']
+        executed_price = quote_net / hex_sold if hex_sold > Decimal('0') else price
+
+        self.balance += quote_net
         self.hex_balance = Decimal('0')
-        self.total_fees += fee + gas_fee
-        
-        # Calculate P&L
+        self.total_fees += cost_info['cost_dai']
+
         if self.entry_price:
-            pnl = (price - self.entry_price) / self.entry_price * Decimal('100')  # Percentage
+            pnl = ((executed_price - self.entry_price) / self.entry_price) * Decimal('100')
             pnl_quote = quote_net - (hex_sold * self.entry_price)
         else:
             pnl = Decimal('0')
             pnl_quote = Decimal('0')
-        
-        # Record trade
+
         trade = {
             'timestamp': timestamp,
             'type': 'sell',
-            'price': float(price),
+            'price': float(executed_price),
             'quote_amount': float(quote_net),
             'hex_amount': float(hex_sold),
-            'fee': float(fee),
+            'fee': float(cost_info['cost_dai']),
             'signal_strength': signal_strength,
             'balance_after': float(self.balance),
             'pnl_pct': float(pnl),
@@ -404,17 +386,25 @@ class BacktestEngine:
             'entry_time': self.entry_time,
             'hold_duration': str(timestamp - self.entry_time) if self.entry_time else None,
             'reason': reason,
-            'index': index or 0
+            'index': index or 0,
+            'slippage_pct': float(cost_info['loss_rate'] * Decimal('100')),
+            'cost_rung_dai': float(cost_info['rung']),
+            'cost_approx_input_dai': float(cost_info['approx_input_dai']),
+            'cost_token_per_dai': float(cost_info['token_per_dai']),
+            'cost_dai_per_token': float(cost_info['dai_per_token']),
+            'cost_roundtrip_loss_dai': float(cost_info['roundtrip_loss_dai']),
         }
-        
+
         self.trades.append(trade)
-        
-        # Reset position
+
         self.position = None
         self.entry_price = None
         self.entry_time = None
-        
-        logger.debug(f"SELL: {hex_sold:.4f} HEX at {price:.8f} DAI, P&L: {pnl:.2f}%")
+
+        logger.debug(
+            f"SELL: {hex_sold:.4f} HEX at {executed_price:.8f} DAI, "
+            f"P&L: {pnl:.2f}% (cache rung {cost_info['rung']})"
+        )
     
     def _record_portfolio_state(self, current_data: pd.Series):
         """Record current portfolio state for analysis"""

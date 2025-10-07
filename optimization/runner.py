@@ -52,6 +52,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import multiprocessing as mp
 from pathlib import Path
 import importlib
+from decimal import Decimal
 
 import pandas as pd
 import numpy as np
@@ -77,9 +78,38 @@ except Exception:
 from optimization.optimizer_bayes import BayesianOptimizer
 from importlib.machinery import SourceFileLoader
 import re
+from utils.swap_cost_cache import (
+    initialize_swap_cost_cache,
+    ensure_worker_cache_initialized,
+    get_swap_cost_cache,
+)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+def atomic_write_json(path: Path, data: Dict[str, Any]) -> None:
+    """Atomically write JSON data to prevent corruption from concurrent writes."""
+    import tempfile
+    import os
+    
+    # Write to temporary file first
+    with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, suffix='.tmp', delete=False) as tmp:
+        try:
+            json.dump(data, tmp, indent=2, default=str)
+            tmp.flush()
+            os.fsync(tmp.fileno())  # Force write to disk
+            tmp_path = Path(tmp.name)
+        except Exception:
+            os.unlink(tmp.name)
+            raise
+    
+    # Atomic move
+    try:
+        tmp_path.replace(path)
+    except Exception:
+        os.unlink(tmp_path)
+        raise
 
 
 TIMEFRAME_LIST = ['5min', '15min', '30min', '1h', '4h', '8h', '16h', '1d']
@@ -726,6 +756,10 @@ def _worker_init():
         import warnings
         warnings.filterwarnings("ignore", category=FutureWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
+        try:
+            ensure_worker_cache_initialized()
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -1593,14 +1627,15 @@ def stage_run(label: str,
         pct = (current_completed / total_tasks * 100.0) if total_tasks else 100.0
         if out_dir:
             try:
-                (out_dir / '_progress.json').write_text(json.dumps({
+                stage_progress = {
                     'objective': objective,
                     'stage': label,
                     'completed': current_completed,
                     'total': total_tasks,
                     'pct': pct,
                     'eta_seconds': stage_eta_seconds,
-                }, indent=2))
+                }
+                atomic_write_json(out_dir / '_progress.json', stage_progress)
             except Exception:
                 pass
         if root_progress_path is None:
@@ -1635,7 +1670,7 @@ def stage_run(label: str,
             rate_all = (g['completed'] / elapsed_all) if elapsed_all > 0 else 0
             eta_all = int((g['total'] - g['completed']) / rate_all) if rate_all > 0 else 0
             g['eta_seconds'] = eta_all
-            root_progress_path.write_text(json.dumps(g, indent=2))
+            atomic_write_json(root_progress_path, g)
             # Emit concise overall summaries mirroring the original output
             eta_h_all = eta_all // 3600
             eta_m_all = (eta_all % 3600) // 60
@@ -1956,6 +1991,13 @@ def main():
         # Use a single root folder for this multi-objective run
         root_dir = args.out_dir if args.out_dir else str(REPO_ROOT / 'reports' / f'optimizer_pipeline_{base_ts}')
         Path(root_dir).mkdir(parents=True, exist_ok=True)
+        os.environ['SWAP_COST_CACHE_DIR'] = str(root_dir)
+        os.environ['SWAP_COST_CACHE_PRODUCER'] = '1'
+        try:
+            initialize_swap_cost_cache(root_dir, producer=True, initial_target=Decimal('100000'))
+        except Exception as exc:
+            print(f"[runner] Failed to initialize swap cost cache producer: {exc}")
+            raise
         # Initialize a shared progress file upfront so children don't assume a single-objective total
         try:
             stage_labels = ['30d','90d','1y'] if args.stage in ('all',) else [args.stage]
@@ -1978,6 +2020,25 @@ def main():
                 }, indent=2))
                 # Show initial overall-stages line for the whole multi-objective run
                 print(f"[overall-stages] 0/{stage_units_total} (0.0%) elapsed 00:00:00 ETA --:--:--", flush=True)
+            else:
+                # Progress file exists (resume case), ensure stage_units total is correct for current objectives
+                try:
+                    g = json.loads(progress_path.read_text())
+                    exp_total = len(obj_list) * len(stage_labels)
+                    su = g.get('stage_units', {'completed': 0, 'total': exp_total})
+                    if int(su.get('total', 0) or 0) != exp_total:
+                        su['total'] = exp_total
+                        g['stage_units'] = su
+                        # Reset per-run counters for resume - completed counter will be re-incremented by children
+                        g['stage_units']['completed'] = 0
+                        g['stage_eta_seconds'] = 0
+                        g['stage_pct'] = 0.0
+                        g['stage_time_starts'] = {}
+                        g['stage_durations_seconds'] = []
+                        atomic_write_json(progress_path, g)
+                        print(f"[overall-stages] Resuming with corrected total: 0/{exp_total} (0.0%) elapsed 00:00:00 ETA --:--:--", flush=True)
+                except Exception as exc:
+                    print(f"[runner] Failed to update existing progress file for resume: {exc}")
         except Exception:
             # Non-fatal: children will still run; they also attempt to correct totals if possible
             pass
@@ -2016,6 +2077,8 @@ def main():
             print(f"[runner] Launching objective={obj} out_dir={out_dir}")
             env = os.environ.copy()
             env['OPTIMIZER_SHARED_CACHE'] = str(shared_cache_root)
+            env['SWAP_COST_CACHE_DIR'] = str(root_dir)
+            env['SWAP_COST_CACHE_PRODUCER'] = '0'
             subprocess.run(cmd, check=True, env=env)
             out_dirs.append((obj, root_dir))
         # After all objectives finished, build per-stage combined aggregates
@@ -2085,6 +2148,10 @@ def main():
             shutil.rmtree(shared_cache_root, ignore_errors=True)
         except Exception:
             pass
+        try:
+            get_swap_cost_cache().stop()
+        except Exception:
+            pass
         return
 
     timeframes = tf_list
@@ -2107,6 +2174,16 @@ def main():
         suffix = '' if args.stage == 'all' else f'_{args.stage}'
         out_root = REPO_ROOT / 'reports' / f'optimizer_pipeline_{timestamp}{suffix}'
     out_root.mkdir(parents=True, exist_ok=True)
+
+    os.environ['SWAP_COST_CACHE_DIR'] = str(out_root)
+    producer_env = os.environ.get('SWAP_COST_CACHE_PRODUCER')
+    should_produce = producer_env is None or producer_env != '0'
+    os.environ['SWAP_COST_CACHE_PRODUCER'] = '1' if should_produce else '0'
+    initialize_swap_cost_cache(
+        out_root,
+        producer=should_produce,
+        initial_target=Decimal('100000'),
+    )
 
     # Build base utility kwargs
     base_opts = {
@@ -2282,6 +2359,38 @@ def main():
                     if zero_entries:
                         rerun_zero_answer = input('Re-run strategies that produced zero trades? [y/N]: ').strip().lower()
                         rerun_zero_trades = (rerun_zero_answer == 'y')
+                    # Clean up progress file for resume: preserve existing data, add new objectives
+                    if root_progress_path.exists():
+                        try:
+                            g = json.loads(root_progress_path.read_text())
+                            # Preserve all existing objectives, add any new ones
+                            existing_objs = set(g.get('objectives', []))
+                            for obj in objectives:
+                                if obj not in existing_objs:
+                                    g.setdefault('objectives', []).append(obj)
+                            # Preserve all existing stages, they'll be used for historical context
+                            # Handle stage_units carefully for multi-objective vs single-objective runs
+                            current_expected_total = len(objectives) * len(stages_to_run)
+                            existing_total = int(g.get('stage_units', {}).get('total', 0))
+                            # If existing total is much larger than current expected, this is likely a child in multi-objective run
+                            # Preserve the existing total, just reset counters for current run tracking
+                            if existing_total > current_expected_total * 2:  # Heuristic for multi-objective
+                                # Multi-objective run: preserve existing stage_units total, reset per-run counters
+                                g['stage_eta_seconds'] = 0
+                                g['stage_pct'] = 0.0
+                                g['stage_time_starts'] = {}
+                                g['stage_durations_seconds'] = []
+                            else:
+                                # Single-objective or new run: reset stage_units for current scope
+                                g['stage_units'] = {'completed': 0, 'total': current_expected_total}
+                                g['stage_eta_seconds'] = 0
+                                g['stage_pct'] = 0.0
+                                g['stage_time_starts'] = {}
+                                g['stage_durations_seconds'] = []
+                            # Don't modify the overall totals - they should reflect all historical + current work
+                            atomic_write_json(root_progress_path, g)
+                        except Exception as exc:
+                            print(f"[resume] Failed to update progress file for resume: {exc}")
                 else:
                     print('[resume] Starting a fresh run in this directory (existing files may be overwritten).')
             else:
@@ -2289,7 +2398,7 @@ def main():
 
     stage_units_total = len(objectives) * len(stages_to_run)
     if not root_progress_path.exists():
-        root_progress_path.write_text(json.dumps({
+        atomic_write_json(root_progress_path, {
             'objectives': objectives,
             'stages': {},
             'completed': 0,
@@ -2303,7 +2412,7 @@ def main():
             'stage_pct': 0.0,
             'stage_time_starts': {},
             'stage_durations_seconds': []
-        }, indent=2))
+        })
         # Print initial overall-stages line (0 completed)
         print(f"[overall-stages] 0/{stage_units_total} (0.0%) elapsed 00:00:00 ETA --:--:--", flush=True)
     else:
@@ -2315,7 +2424,7 @@ def main():
             if int(su.get('total', 0) or 0) != exp_total:
                 su['total'] = exp_total
                 g['stage_units'] = su
-                root_progress_path.write_text(json.dumps(g, indent=2))
+                atomic_write_json(root_progress_path, g)
         except Exception:
             pass
 
@@ -2362,7 +2471,7 @@ def main():
                     g = json.loads(root_progress_path.read_text()) if root_progress_path.exists() else {}
                     g.setdefault('stage_time_starts', {})
                     g['stage_time_starts'][f"{objective}_30d"] = datetime.now().isoformat()
-                    root_progress_path.write_text(json.dumps(g, indent=2))
+                    atomic_write_json(root_progress_path, g)
                 except Exception:
                     pass
                 stage1_resume_state = resume_plan.get(objective, {}).get(stage1.label) if resume_mode else None
@@ -2427,7 +2536,7 @@ def main():
                     rem = max(0, tot_u - comp_u)
                     g['stage_eta_seconds'] = int(rem * avg)
                     g['stage_pct'] = (comp_u / tot_u * 100.0) if tot_u else 100.0
-                    root_progress_path.write_text(json.dumps(g, indent=2))
+                    atomic_write_json(root_progress_path, g)
                     eta = g['stage_eta_seconds']; eh=int(((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())//3600); em=int((((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())%3600)//60); es=int(((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())%60)
                     th=eta//3600; tm=(eta%3600)//60; ts=eta%60
                     print(f"[overall-stages] {comp_u}/{tot_u} ({g['stage_pct']:.1f}%) elapsed {eh:02d}:{em:02d}:{es:02d} ETA {th:02d}:{tm:02d}:{ts:02d}", flush=True)
@@ -2457,7 +2566,7 @@ def main():
                     g = json.loads(root_progress_path.read_text()) if root_progress_path.exists() else {}
                     g.setdefault('stage_time_starts', {})
                     g['stage_time_starts'][f"{objective}_90d"] = datetime.now().isoformat()
-                    root_progress_path.write_text(json.dumps(g, indent=2))
+                    atomic_write_json(root_progress_path, g)
                 except Exception:
                     pass
                 stage2_resume_state = resume_plan.get(objective, {}).get(stage2.label) if resume_mode else None
@@ -2522,7 +2631,7 @@ def main():
                     rem = max(0, tot_u - comp_u)
                     g['stage_eta_seconds'] = int(rem * avg)
                     g['stage_pct'] = (comp_u / tot_u * 100.0) if tot_u else 100.0
-                    root_progress_path.write_text(json.dumps(g, indent=2))
+                    atomic_write_json(root_progress_path, g)
                     eta = g['stage_eta_seconds']; eh=int(((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())//3600); em=int((((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())%3600)//60); es=int(((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())%60)
                     th=eta//3600; tm=(eta%3600)//60; ts=eta%60
                     print(f"[overall-stages] {comp_u}/{tot_u} ({g['stage_pct']:.1f}%) elapsed {eh:02d}:{em:02d}:{es:02d} ETA {th:02d}:{tm:02d}:{ts:02d}", flush=True)
@@ -2551,7 +2660,7 @@ def main():
                 g = json.loads(root_progress_path.read_text()) if root_progress_path.exists() else {}
                 g.setdefault('stage_time_starts', {})
                 g['stage_time_starts'][f"{objective}_1y"] = datetime.now().isoformat()
-                root_progress_path.write_text(json.dumps(g, indent=2))
+                atomic_write_json(root_progress_path, g)
             except Exception:
                 pass
             stage3_resume_state = resume_plan.get(objective, {}).get(stage3.label) if resume_mode else None
@@ -2620,7 +2729,7 @@ def main():
                 rem = max(0, tot_u - comp_u)
                 g['stage_eta_seconds'] = int(rem * avg)
                 g['stage_pct'] = (comp_u / tot_u * 100.0) if tot_u else 100.0
-                root_progress_path.write_text(json.dumps(g, indent=2))
+                atomic_write_json(root_progress_path, g)
                 eta = g['stage_eta_seconds']; eh=int(((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())//3600); em=int((((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())%3600)//60); es=int(((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())%60)
                 th=eta//3600; tm=(eta%3600)//60; ts=eta%60
                 print(f"[overall-stages] {comp_u}/{tot_u} ({g['stage_pct']:.1f}%) elapsed {eh:02d}:{em:02d}:{es:02d} ETA {th:02d}:{tm:02d}:{ts:02d}", flush=True)
@@ -2648,6 +2757,11 @@ def main():
     if args.stage == 'all' and overall_summary:
         (out_root / 'final_summary.json').write_text(json.dumps(overall_summary if len(objectives) > 1 else list(overall_summary.values())[0], indent=2))
         print(json.dumps(overall_summary if len(objectives) > 1 else list(overall_summary.values())[0], indent=2))
+
+    try:
+        get_swap_cost_cache().stop()
+    except Exception:
+        pass
 
 
 if __name__ == '__main__':
