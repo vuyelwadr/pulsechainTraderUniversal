@@ -93,9 +93,9 @@ class WaveTrendStrategy(BaseStrategy):
         default_params = {
             'channel_length': 10,
             'average_length': 21,
-            'overbought': 60,
-            'oversold': -60,
-            'signal_threshold': 0.6
+            'overbought': 8,
+            'oversold': -8,
+            'signal_threshold': 0.02
         }
         if parameters:
             default_params.update(parameters)
@@ -137,8 +137,9 @@ class WaveTrendStrategy(BaseStrategy):
         df['sell_signal'] = df['wt_cross_down'] & (df['wt1'] > self.parameters['overbought'])
         
         # Signal strength based on divergence magnitude
-        df['signal_strength'] = np.abs(df['wt1'] - df['wt2']) / 100
+        df['signal_strength'] = np.abs(df['wt1'] - df['wt2']) / 5.0
         df['signal_strength'] = df['signal_strength'].clip(0, 1)
+        df.loc[df['signal_strength'] < self.parameters['signal_threshold'], ['buy_signal', 'sell_signal']] = False
         
         return df
 
@@ -148,9 +149,9 @@ class WaveTrendStrategy(BaseStrategy):
         return {
             'channel_length': (5, 50),  # EMA period for ESA
             'average_length': (5, 50),  # EMA period for TCI
-            'overbought': (50, 90),  # WaveTrend overbought level (reasonable range)
-            'oversold': (-90, -10),  # WaveTrend oversold level (reasonable range)
-            'signal_threshold': (0.0, 0.95),  # Signal threshold can't be 1.0
+            'overbought': (6, 18),  # Lower thresholds for low-vol regimes
+            'oversold': (-18, -6),  # Lower thresholds for low-vol regimes
+            'signal_threshold': (0.01, 0.08),  # Strategy becomes active sooner
         }
 
 
@@ -296,50 +297,50 @@ class MESAAdaptiveMAStrategy(BaseStrategy):
     
     def calculate_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
         df = data.copy()
-        
-        # Hilbert Transform Period
-        df['smooth'] = (4 * df['close'] + 3 * df['close'].shift(1) + 
+
+        df['smooth'] = (4 * df['close'] + 3 * df['close'].shift(1) +
                        2 * df['close'].shift(2) + df['close'].shift(3)) / 10
-        
-        # Compute InPhase and Quadrature components
-        df['detrender'] = (0.0962 * df['smooth'] + 0.5769 * df['smooth'].shift(2) - 
+
+        df['detrender'] = (0.0962 * df['smooth'] + 0.5769 * df['smooth'].shift(2) -
                           0.5769 * df['smooth'].shift(4) - 0.0962 * df['smooth'].shift(6))
-        
-        # Compute period
-        df['q1'] = (0.0962 * df['detrender'] + 0.5769 * df['detrender'].shift(2) - 
+
+        df['q1'] = (0.0962 * df['detrender'] + 0.5769 * df['detrender'].shift(2) -
                    0.5769 * df['detrender'].shift(4) - 0.0962 * df['detrender'].shift(6))
         df['i1'] = df['detrender'].shift(3)
-        
-        # MAMA calculation with adaptive alpha
+
         df['phase'] = np.arctan2(df['q1'], df['i1'])
-        df['delta_phase'] = df['phase'] - df['phase'].shift(1)
-        df['delta_phase'] = df['delta_phase'].clip(-1.1, 1.1)
-        
-        df['instant_period'] = 0
-        df['period'] = 0
-        df['alpha'] = self.parameters['fast_limit']
-        
-        # MAMA and FAMA
-        df['mama'] = df['close'].copy()
-        df['fama'] = df['close'].copy()
-        
-        for i in range(6, len(df)):
-            if df['delta_phase'].iloc[i] != 0:
-                df.loc[df.index[i], 'instant_period'] = 360 / np.abs(df['delta_phase'].iloc[i])
-            
-            df.loc[df.index[i], 'period'] = 0.2 * df['instant_period'].iloc[i] + 0.8 * df['period'].iloc[i-1]
-            df.loc[df.index[i], 'period'] = np.clip(df['period'].iloc[i], 6, 50)
-            
-            df.loc[df.index[i], 'alpha'] = 2 / (df['period'].iloc[i] + 1)
-            df.loc[df.index[i], 'alpha'] = np.clip(df['alpha'].iloc[i], 
-                                                    self.parameters['slow_limit'], 
-                                                    self.parameters['fast_limit'])
-            
-            df.loc[df.index[i], 'mama'] = df['alpha'].iloc[i] * df['close'].iloc[i] + \
-                                          (1 - df['alpha'].iloc[i]) * df['mama'].iloc[i-1]
-            df.loc[df.index[i], 'fama'] = 0.5 * df['alpha'].iloc[i] * df['mama'].iloc[i] + \
-                                          (1 - 0.5 * df['alpha'].iloc[i]) * df['fama'].iloc[i-1]
-        
+        df['delta_phase'] = (df['phase'] - df['phase'].shift(1)).clip(-1.1, 1.1)
+
+        close = df['close'].astype(float).to_numpy()
+        delta_phase = df['delta_phase'].to_numpy(dtype=float)
+        length = len(df)
+        instant_period = np.zeros(length, dtype=float)
+        period = np.zeros(length, dtype=float)
+        fast_limit = float(self.parameters['fast_limit'])
+        slow_limit = float(self.parameters['slow_limit'])
+        alpha = np.full(length, fast_limit, dtype=float)
+        mama = close.copy()
+        fama = close.copy()
+
+        for i in range(6, length):
+            dp = delta_phase[i]
+            if not np.isnan(dp) and dp != 0.0:
+                instant_period[i] = 360.0 / np.abs(dp)
+            else:
+                instant_period[i] = 0.0
+            period[i] = 0.2 * instant_period[i] + 0.8 * period[i - 1]
+            period[i] = np.clip(period[i], 6.0, 50.0)
+            alpha[i] = 2.0 / (period[i] + 1.0)
+            alpha[i] = np.clip(alpha[i], slow_limit, fast_limit)
+            mama[i] = alpha[i] * close[i] + (1.0 - alpha[i]) * mama[i - 1]
+            fama[i] = 0.5 * alpha[i] * mama[i] + (1.0 - 0.5 * alpha[i]) * fama[i - 1]
+
+        df['instant_period'] = instant_period
+        df['period'] = period
+        df['alpha'] = alpha
+        df['mama'] = mama
+        df['fama'] = fama
+
         return df
     
     def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
@@ -498,9 +499,11 @@ class ZeroLagEMAStrategy(BaseStrategy):
     
     def __init__(self, parameters: Dict = None):
         default_params = {
-            'period': 21,
-            'gain_limit': 50,
-            'signal_threshold': 0.6
+            'period': 28,
+            'gain_limit': 12,
+            'signal_threshold': 0.03,
+            'trade_amount_pct': 0.15,
+            'volatility_floor': 0.0006
         }
         if parameters:
             default_params.update(parameters)
@@ -529,15 +532,31 @@ class ZeroLagEMAStrategy(BaseStrategy):
     def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
         df = data.copy()
         
+        # Simple volatility gate: require recent absolute return to exceed floor
+        df['ret'] = df['close'].pct_change().abs()
+        vol_floor = float(self.parameters.get('volatility_floor', 0.0) or 0.0)
+        df['vol_ok'] = df['ret'].rolling(window=3, min_periods=1).mean() >= vol_floor
+        
         # Buy when price crosses above ZLEMA
-        df['buy_signal'] = (df['close'] > df['zlema']) & (df['close'].shift(1) <= df['zlema'].shift(1))
+        df['buy_signal'] = (
+            (df['close'] > df['zlema']) &
+            (df['close'].shift(1) <= df['zlema'].shift(1)) &
+            df['vol_ok']
+        )
         
         # Sell when price crosses below ZLEMA
-        df['sell_signal'] = (df['close'] < df['zlema']) & (df['close'].shift(1) >= df['zlema'].shift(1))
+        df['sell_signal'] = (
+            (df['close'] < df['zlema']) &
+            (df['close'].shift(1) >= df['zlema'].shift(1)) &
+            df['vol_ok']
+        )
         
         # Signal strength
         df['signal_strength'] = np.abs(df['close'] - df['zlema']) / df['close']
         df['signal_strength'] = df['signal_strength'].clip(0, 1)
+        df.loc[df['signal_strength'] < self.parameters['signal_threshold'], ['buy_signal', 'sell_signal']] = False
+        
+        df.drop(columns=['ret', 'vol_ok'], inplace=True)
         
         return df
 
@@ -545,9 +564,11 @@ class ZeroLagEMAStrategy(BaseStrategy):
     def parameter_space(cls) -> Dict[str, Tuple[float, float]]:
         """Define parameter bounds for optimization"""
         return {
-            'period': (10, 50),  # EMA period
-            'gain_limit': (10, 100),  # Gain limit parameter
-            'signal_threshold': (0.0, 0.95),  # Signal threshold can't be 1.0
+            'period': (20, 40),  # EMA period
+            'gain_limit': (5, 20),  # Gain limit parameter
+            'signal_threshold': (0.015, 0.08),  # Guard against hyper-trading
+            'trade_amount_pct': (0.05, 0.2),
+            'volatility_floor': (0.0003, 0.0015),
         }
 
 

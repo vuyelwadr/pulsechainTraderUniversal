@@ -518,3 +518,8 @@ token0=0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39 token1=0xA1077a294dDE1B09bB078
       --data-path data/<asset>_ohlcv_<quote>_730day_5m.csv \
       --max-backtests 300
     ```
+
+
+
+    full run
+     /Users/ruwodda/Documents/Personal/Repos/pulsechainTraderUniversal/.venv/bin/python -m optimization.runner --objectives mar,utility,cps,profit_biased,cps_v2,cps_v2_profit_biased,final_balance --stage all --out-dir reports/optimizer_multirun_latest

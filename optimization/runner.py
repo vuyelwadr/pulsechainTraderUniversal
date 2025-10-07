@@ -40,6 +40,7 @@ Outputs timestamped results under reports/optimizer_pipeline_YYYYmmdd_HHMMSS/
 import os
 import sys
 import json
+import gzip
 import logging
 from dataclasses import dataclass
 import subprocess
@@ -54,6 +55,7 @@ import importlib
 
 import pandas as pd
 import numpy as np
+import math
 
 # Ensure repo root on path
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -567,6 +569,36 @@ def _classify_stage_result(payload: Dict[str, Any]) -> str:
     return 'success'
 
 
+def _iter_stage_result_files(stage_dir: Path):
+    """Yield per-strategy result files (supports .json and .json.gz)."""
+    seen_bases = set()
+    for pattern in ('*.json', '*.json.gz'):
+        for path in stage_dir.glob(pattern):
+            name = path.name
+            if name.startswith('_'):
+                continue
+            if name.startswith('summary.json'):
+                continue
+            base = name.split('.json')[0]
+            if base in seen_bases and path.suffix == '.gz':
+                # Prefer uncompressed copy if both exist
+                continue
+            seen_bases.add(base)
+            yield path
+
+
+def _read_json_file(path: Path) -> Optional[Dict[str, Any]]:
+    """Load JSON from plain or gzipped file; returns None on failure."""
+    try:
+        if path.suffix == '.gz' or path.name.endswith('.json.gz'):
+            with gzip.open(path, 'rt', encoding='utf-8') as fh:
+                return json.load(fh)
+        with path.open('r', encoding='utf-8') as fh:
+            return json.load(fh)
+    except Exception:
+        return None
+
+
 def _load_stage_results(stage_dir: Path) -> Dict[str, Any]:
     """Load all per-strategy JSON results present under a stage directory."""
     entries: Dict[Tuple[str, str], Dict[str, Any]] = {}
@@ -586,13 +618,9 @@ def _load_stage_results(stage_dir: Path) -> Dict[str, Any]:
             'error_items': error_items,
             'zero_trade_items': zero_trade_items,
         }
-    for path in stage_dir.glob('*.json'):
-        name = path.name
-        if name.startswith('_') or name in {'summary.json'}:
-            continue
-        try:
-            payload = json.loads(path.read_text())
-        except Exception:
+    for path in _iter_stage_result_files(stage_dir):
+        payload = _read_json_file(path)
+        if not isinstance(payload, dict):
             continue
         strat = payload.get('strategy')
         tf = payload.get('timeframe')
@@ -715,7 +743,9 @@ def optimize_wfo(strategy_name: str,
                  random_state: Optional[int] = None,
                  acq_funcs: Optional[List[str]] = None,
                  initial_params: Optional[List[Dict[str, Any]]] = None,
-                 bounds_override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                 bounds_override: Optional[Dict[str, Any]] = None,
+                 thread_workers: Optional[int] = None,
+                 pool_reserves: Optional[Dict[str, Tuple[int, int]]] = None) -> Dict[str, Any]:
     strategy_class = load_strategy_class(strategy_name, path_map=path_map)
     if not strategy_class:
         return {'strategy': strategy_name, 'timeframe': timeframe, 'error': 'not found'}
@@ -758,14 +788,15 @@ def optimize_wfo(strategy_name: str,
         return {'strategy': strategy_name, 'timeframe': timeframe, 'error': f'data_load_failed: {e}'}
     if data_tf is None or len(data_tf) == 0:
         return {'strategy': strategy_name, 'timeframe': timeframe, 'error': 'empty timeframe data'}
-    
-    # Fetch trading reserves once for accurate slippage calculation
-    try:
-        from collectors.reserve_fetcher import fetch_trading_reserves
-        pool_reserves = fetch_trading_reserves()
-        logger.info(f"Fetched {len(pool_reserves)} pool reserves for slippage calculation")
-    except Exception as e:
-        raise RuntimeError(f"Failed to fetch pool reserves for slippage calculation: {e}")
+
+    # Fetch trading reserves once for accurate slippage calculation unless supplied
+    if pool_reserves is None:
+        try:
+            from collectors.reserve_fetcher import fetch_trading_reserves
+            pool_reserves = fetch_trading_reserves()
+            logger.info(f"Fetched {len(pool_reserves)} pool reserves for slippage calculation")
+        except Exception as e:
+            raise RuntimeError(f"Failed to fetch pool reserves for slippage calculation: {e}")
     
     # Generate folds
     folds = generate_wfo_folds(data_tf, window_days=window_days, train_days=train_days, test_days=test_days, step_days=step_days)
@@ -779,6 +810,7 @@ def optimize_wfo(strategy_name: str,
         init_points = 1
     else:
         init_points = max(1, min(top_calls, max(5, top_calls // 4)))
+    thread_workers = max(1, int(thread_workers)) if thread_workers else 1
     optimizer = BayesianOptimizer(
         n_calls=top_calls,
         # Respect small --calls values; ensure 1 <= n_initial_points <= n_calls when positive
@@ -786,6 +818,10 @@ def optimize_wfo(strategy_name: str,
         acq_func=acq_primary,
         random_state=seed,
         acq_funcs=acq_sequence,
+        n_jobs=thread_workers,
+        fold_workers=thread_workers if thread_workers > 1 else None,
+        refinement_workers=thread_workers if thread_workers > 1 else None,
+        refinement_neighbors=12,
     )
 
     warm_start_params = _sanitize_initial_params(initial_params, dims) if initial_params else []
@@ -947,6 +983,8 @@ def optimize_wfo(strategy_name: str,
         vol_avg = (vol_weighted_sum / vol_weights) if vol_weights > 0 else 0.0
         # overall win rate from sells
         win_rate_pct = (agg_profitable_trades / agg_sell_trades * 100.0) if agg_sell_trades > 0 else 0.0
+        oos_return_pct = float(((agg_factor) - 1.0) * 100.0)
+        oos_bh_return_pct = float(((bh_factor) - 1.0) * 100.0) if bh_factor > 0 else 0.0
         results_agg = {
             'strategy_name': 'WFO OOS Aggregate',
             'start_time': str(earliest_start) if earliest_start is not None else '',
@@ -967,12 +1005,13 @@ def optimize_wfo(strategy_name: str,
             'avg_loss_pct': None,
             'profit_factor': None,
             'max_drawdown_pct': float(agg_max_dd),
-        'volatility_pct': float(vol_avg),
-        'sharpe_ratio': float(sharpe_avg),
-        'pos_folds': int(pos_folds),
-        'num_folds': int(num_folds),
-        'bh_return_pct': float(((bh_factor) - 1.0) * 100.0) if bh_factor > 0 else 0.0,
-    }
+            'volatility_pct': float(vol_avg),
+            'sharpe_ratio': float(sharpe_avg),
+            'pos_folds': int(pos_folds),
+            'num_folds': int(num_folds),
+            'bh_return_pct': float(oos_bh_return_pct),
+            'oos_return_pct': float(oos_return_pct),
+        }
     except Exception:
         results_agg = {
             'strategy_name': 'WFO OOS Aggregate',
@@ -985,6 +1024,8 @@ def optimize_wfo(strategy_name: str,
             'volatility_pct': 0.0,
             'pos_folds': 0,
             'num_folds': 0,
+            'bh_return_pct': 0.0,
+            'oos_return_pct': 0.0,
         }
     return {
         'strategy': strategy_name,
@@ -1490,7 +1531,8 @@ def stage_run(label: str,
               resume_mode: bool = False,
               resume_state: Optional[Dict[str, Any]] = None,
               rerun_errors: bool = False,
-              rerun_zero_trades: bool = False) -> List[Dict[str, Any]]:
+              rerun_zero_trades: bool = False,
+              strategy_timeframes: Optional[Dict[str, List[str]]] = None) -> List[Dict[str, Any]]:
     if out_dir is not None:
         out_dir.mkdir(parents=True, exist_ok=True)
     resume_state = resume_state or {}
@@ -1503,7 +1545,10 @@ def stage_run(label: str,
     # Build tasks as lightweight tuples including original index so random seeds remain stable.
     tasks_all: List[Tuple[int, str, str]] = []
     for s in strategies:
-        for tf in timeframes:
+        tf_list = (strategy_timeframes or {}).get(s, timeframes)
+        if not tf_list:
+            tf_list = timeframes
+        for tf in tf_list:
             tasks_all.append((len(tasks_all), s, tf))
 
     results: List[Dict[str, Any]] = []
@@ -1533,6 +1578,16 @@ def stage_run(label: str,
     start_ts = datetime.now()
 
     stage_key = f"{objective}_{label}"
+
+    shared_pool_reserves: Optional[Dict[str, Tuple[int, int]]] = None
+    if tasks_to_run:
+        try:
+            from collectors.reserve_fetcher import fetch_trading_reserves
+            shared_pool_reserves = fetch_trading_reserves() or {}
+            logger.info(f"Pre-fetched {len(shared_pool_reserves)} pool reserves for stage {stage_key}")
+        except Exception as e:
+            logger.error(f"Failed to fetch pool reserves for stage {stage_key}: {e}")
+            raise
 
     def emit_progress(current_completed: int, stage_eta_seconds: int) -> None:
         pct = (current_completed / total_tasks * 100.0) if total_tasks else 100.0
@@ -1644,6 +1699,8 @@ def stage_run(label: str,
             # Minimum bars needed per fold to avoid short-window errors
             MIN_IS_BARS = 180
             MIN_OOS_BARS = 60
+            total_cores = os.cpu_count() or 8
+            threads_per_worker = max(1, total_cores // max(1, workers))
             for orig_idx, s, tf in tasks_to_run:
                 tf_min = timeframe_to_minutes(tf)
                 bars_to_days = lambda bars: int(np.ceil(bars * tf_min / (24 * 60)))
@@ -1667,6 +1724,8 @@ def stage_run(label: str,
                     acq_funcs=acq_funcs,
                     initial_params=initial_params,
                     bounds_override=bounds_override,
+                    thread_workers=threads_per_worker,
+                    pool_reserves=shared_pool_reserves,
                 ))
 
             import traceback
@@ -1675,7 +1734,9 @@ def stage_run(label: str,
                     r = fut.result()
                     results.append(r)
                     if out_dir:
-                        (out_dir / f"{r.get('strategy','unknown')}_{r.get('timeframe','tf')}.json").write_text(json.dumps(r, indent=2, default=str))
+                        result_path = out_dir / f"{r.get('strategy','unknown')}_{r.get('timeframe','tf')}.json.gz"
+                        with gzip.open(result_path, 'wt', encoding='utf-8') as fh:
+                            json.dump(r, fh, indent=2, default=str)
                 except Exception as e:
                     logger.error(f"Stage {label} task failed: {e!r}")
                     logger.debug("%s", traceback.format_exc())
@@ -1711,32 +1772,63 @@ def stage_run(label: str,
     return results
 
 
-def select_top(results: List[Dict[str, Any]], top_n: int) -> List[str]:
-    # Aggregate best total_return_pct across timeframes per strategy
-    best_by_strategy: Dict[str, float] = {}
+def select_top(results: List[Dict[str, Any]], top_n: int) -> List[Dict[str, Any]]:
+    """Select top strategies ranked by aggregated OOS returns.
+
+    Returns a list of dict entries containing strategy and best timeframe.
+    """
+    best_map: Dict[str, Dict[str, Any]] = {}
+    fallback_map: Dict[str, Dict[str, Any]] = {}
     for r in results:
-        s = r.get('strategy')
-        # Use total_return_pct for ranking
-        score_val = r.get('total_return_pct', None)
-        if score_val is None:
-            score_val = 0.0
-        try:
-            val = float(score_val)
-        except Exception:
-            val = 0.0
-        if not s:
+        strategy = r.get('strategy')
+        timeframe = r.get('timeframe')
+        if not strategy or not timeframe:
             continue
-        if s not in best_by_strategy or val > best_by_strategy[s]:
-            best_by_strategy[s] = val
-    ranked = sorted(best_by_strategy.items(), key=lambda kv: kv[1], reverse=True)
-    return [s for s, _ in ranked[:max(1, top_n)]]
+        agg = r.get('results_agg') or {}
+        raw_return = agg.get('oos_return_pct', agg.get('total_return_pct'))
+        try:
+            ret_val = float(raw_return)
+        except (TypeError, ValueError):
+            continue
+        if math.isnan(ret_val):
+            continue
+        trades = agg.get('total_trades', 0)
+        try:
+            trades_val = int(trades)
+        except (TypeError, ValueError):
+            trades_val = 0
+        bh = agg.get('bh_return_pct', 0.0)
+        try:
+            bh_val = float(bh)
+        except (TypeError, ValueError):
+            bh_val = 0.0
+        entry = {
+            'strategy': strategy,
+            'timeframe': timeframe,
+            'return_pct': ret_val,
+            'bh_return_pct': bh_val,
+            'total_trades': trades_val,
+        }
+        # Zero-trade guard: only drop if market was flat/up (bh >= 0)
+        if trades_val == 0 and bh_val >= 0.0:
+            if strategy not in fallback_map or ret_val > fallback_map[strategy]['return_pct']:
+                fallback_map[strategy] = entry
+            continue
+        current = best_map.get(strategy)
+        if current is None or ret_val > current['return_pct']:
+            best_map[strategy] = entry
+    if not best_map and fallback_map:
+        best_map = fallback_map
+    ranked_entries = sorted(best_map.values(), key=lambda e: e['return_pct'], reverse=True)
+    top_entries = ranked_entries[:max(1, top_n)]
+    return top_entries
 
 
 def main():
     import argparse
     ap = argparse.ArgumentParser(description='Unified Optimizer Runner (multi-stage)')
-    ap.add_argument('--top-n1', type=int, default=60)
-    ap.add_argument('--top-n2', type=int, default=20)
+    ap.add_argument('--top-n1', type=int, default=20)
+    ap.add_argument('--top-n2', type=int, default=10)
     ap.add_argument('--top-n3', type=int, default=5)
     ap.add_argument('--timeframes', type=str, default=','.join(TIMEFRAME_LIST))
     # Default workers determined dynamically to target ~90% CPU utilization
@@ -2050,24 +2142,56 @@ def main():
         cache_map = {}
 
     # Strategy set helpers
-    def load_seed_strategies() -> List[str]:
+    def _parse_seed_entries(entries: List[Any]) -> Tuple[List[str], Dict[str, List[str]]]:
+        names: List[str] = []
+        tf_map: Dict[str, List[str]] = {}
+        for entry in entries:
+            if isinstance(entry, dict):
+                name = entry.get('strategy') or entry.get('name')
+                tf = entry.get('timeframe')
+            else:
+                name = str(entry)
+                tf = None
+            if not name:
+                continue
+            if name not in names:
+                names.append(name)
+            if tf:
+                tf_map.setdefault(name, [])
+                if tf not in tf_map[name]:
+                    tf_map[name].append(tf)
+        return names, tf_map
+
+    def load_seed_strategies() -> Tuple[List[str], Dict[str, List[str]]]:
         # --strategies-file overrides
         if args.strategies_file:
             p = Path(args.strategies_file)
             if not p.exists():
                 raise FileNotFoundError(f"strategies-file not found: {p}")
             arr = json.loads(p.read_text())
-            return list(dict.fromkeys([str(x) for x in arr]))
+            return _parse_seed_entries(arr if isinstance(arr, list) else [arr])
         # --from-summary supplies {top: [...]}
         if args.from_summary:
             p = Path(args.from_summary)
             if not p.exists():
                 raise FileNotFoundError(f"from-summary not found: {p}")
             data = json.loads(p.read_text())
-            top = data.get('top') or data.get('selected') or []
-            return list(dict.fromkeys([str(x) for x in top]))
+            if isinstance(data, dict):
+                if 'top' in data and isinstance(data['top'], list) and data['top']:
+                    return _parse_seed_entries(data['top'])
+                tf_map_data = data.get('timeframe_map')
+                if isinstance(tf_map_data, dict) and tf_map_data:
+                    names = list(tf_map_data.keys())
+                    tf_map_normalized = {str(k): list(v) for k, v in tf_map_data.items()}
+                    return names, tf_map_normalized
+                if 'selected' in data and isinstance(data['selected'], list):
+                    return _parse_seed_entries(data['selected'])
+                # legacy format fallbacks
+                flat = data.get('strategies') or data.get('top_strategies') or []
+                return _parse_seed_entries(flat if isinstance(flat, list) else [flat])
+            return _parse_seed_entries([])
         # Fallback to full discovery
-        return collect_strategies()
+        return collect_strategies(), {}
 
     # Full discovery only needed for stage all or stage 30d without seeds
     strategies_all = collect_strategies()
@@ -2202,13 +2326,38 @@ def main():
             utility_kwargs = base_opts['utility_kwargs']
             obj_tag = objective
 
+            base_seed_strategies, base_seed_map = (load_seed_strategies() if (args.strategies_file or args.from_summary) else (strategies_all, {}))
+
+            def _count_combos(strats: List[str], tf_map: Dict[str, List[str]]) -> int:
+                total = 0
+                for name in strats:
+                    tf_list = tf_map.get(name)
+                    if tf_list:
+                        total += len(tf_list)
+                    else:
+                        total += len(timeframes)
+                return total
+
+            current_strategies = list(base_seed_strategies)
+            current_tf_map = {k: list(v) for k, v in base_seed_map.items()}
+            top1_entries: List[Dict[str, Any]] = []
+            top2_entries: List[Dict[str, Any]] = []
+            top3_entries: List[Dict[str, Any]] = []
+            stage1_input_count = len(current_strategies) if current_strategies else len(strategies_all)
+            stage2_input_count = 0
+            stage3_input_count = 0
+
             # Stage 1
             if args.stage in ('all', '30d'):
-                strategies = strategies_all if not (args.strategies_file or args.from_summary) else load_seed_strategies()
                 s1_dir = out_root / f"{obj_tag}_30d"
                 s1_dir.mkdir(exist_ok=True)
-                print(f"[progress] Starting Stage 1 (30d) for objective={objective} with {len(strategies)} strategies × {len(timeframes)} TFs", flush=True)
-                # Mark stage start for overall tracker
+                input_strategies = current_strategies or list(strategies_all)
+                input_tf_map = current_tf_map
+                stage1_input_count = len(input_strategies)
+                combos = _count_combos(input_strategies, input_tf_map)
+                if combos <= 0:
+                    combos = len(input_strategies) * len(timeframes)
+                print(f"[progress] Starting Stage 1 (30d) for objective={objective} with {len(input_strategies)} strategies × {combos} combos", flush=True)
                 try:
                     g = json.loads(root_progress_path.read_text()) if root_progress_path.exists() else {}
                     g.setdefault('stage_time_starts', {})
@@ -2220,7 +2369,7 @@ def main():
                 res1 = stage_run(
                     stage1.label,
                     cache_map if cache_map else stage1.csv_path,
-                    strategies,
+                    input_strategies,
                     timeframes,
                     args.workers,
                     args.calls,
@@ -2237,15 +2386,27 @@ def main():
                     resume_state=stage1_resume_state,
                     rerun_errors=rerun_errors,
                     rerun_zero_trades=rerun_zero_trades,
+                    strategy_timeframes=input_tf_map if input_tf_map else None,
                 )
-                top1 = select_top(res1, stage1.top_n)
-                (s1_dir / 'summary.json').write_text(json.dumps({'top': top1, 'total': len(strategies)}, indent=2))
+                top1_entries = select_top(res1, stage1.top_n)
+                if top1_entries:
+                    current_strategies = [entry['strategy'] for entry in top1_entries]
+                    current_tf_map = {entry['strategy']: [entry['timeframe']] for entry in top1_entries if entry.get('timeframe')}
+                else:
+                    current_strategies = input_strategies[:stage1.top_n]
+                    if input_tf_map:
+                        current_tf_map = {s: input_tf_map.get(s, []) for s in current_strategies if input_tf_map.get(s)}
+                stage1_summary = {
+                    'top': top1_entries,
+                    'top_strategies': current_strategies,
+                    'timeframe_map': current_tf_map,
+                    'total': len(input_strategies),
+                }
+                (s1_dir / 'summary.json').write_text(json.dumps(stage1_summary, indent=2))
                 aggregate_stage(s1_dir)
-                # Update overall stage-unit completion and compute stage ETA
                 try:
                     g = json.loads(root_progress_path.read_text()) if root_progress_path.exists() else {}
                     g.setdefault('stage_units', {'completed': 0, 'total': stage_units_total})
-                    # Correct total if parent initialized a different set of objectives
                     try:
                         exp_total = max(1, len(g.get('objectives', objectives)) * len(stages_to_run))
                         if int(g['stage_units'].get('total', 0) or 0) != exp_total:
@@ -2260,7 +2421,6 @@ def main():
                     dur = int(max(0, (datetime.now() - st_start.to_pydatetime()).total_seconds()))
                     g['stage_durations_seconds'].append(dur)
                     g['stage_units']['completed'] = int(g['stage_units'].get('completed', 0)) + 1
-                    # Compute stage-level ETA
                     comp_u = int(g['stage_units']['completed'])
                     tot_u = int(g['stage_units']['total'])
                     avg = (sum(g['stage_durations_seconds']) / max(1, len(g['stage_durations_seconds']))) if g['stage_durations_seconds'] else 0
@@ -2268,25 +2428,31 @@ def main():
                     g['stage_eta_seconds'] = int(rem * avg)
                     g['stage_pct'] = (comp_u / tot_u * 100.0) if tot_u else 100.0
                     root_progress_path.write_text(json.dumps(g, indent=2))
-                    # Print concise overall stage progress
                     eta = g['stage_eta_seconds']; eh=int(((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())//3600); em=int((((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())%3600)//60); es=int(((pd.to_datetime(datetime.now())-pd.to_datetime(g['started_at'])).total_seconds())%60)
                     th=eta//3600; tm=(eta%3600)//60; ts=eta%60
                     print(f"[overall-stages] {comp_u}/{tot_u} ({g['stage_pct']:.1f}%) elapsed {eh:02d}:{em:02d}:{es:02d} ETA {th:02d}:{tm:02d}:{ts:02d}", flush=True)
                 except Exception:
                     pass
                 if args.stage == '30d':
-                    print(json.dumps({'stage': '30d', 'objective': objective, 'top': top1, 'total': len(strategies)}, indent=2))
+                    print(json.dumps({'stage': '30d', 'objective': objective, 'top': top1_entries, 'total': len(input_strategies)}, indent=2))
                     continue
             else:
-                top1 = load_seed_strategies()
-                if not top1:
-                    raise SystemExit('No seed strategies provided for this stage. Use --from-summary or --strategies-file')
+                if not current_strategies:
+                    current_strategies = list(base_seed_strategies)
+                if not current_tf_map:
+                    current_tf_map = {k: list(v) for k, v in base_seed_map.items()}
 
             # Stage 2
             if args.stage in ('all', '90d'):
                 s2_dir = out_root / f"{obj_tag}_90d"
                 s2_dir.mkdir(exist_ok=True)
-                print(f"[progress] Starting Stage 2 (90d) for objective={objective} with {len(top1)} strategies × {len(timeframes)} TFs", flush=True)
+                input_strategies = current_strategies or list(base_seed_strategies)
+                input_tf_map = current_tf_map
+                stage2_input_count = len(input_strategies)
+                combos = _count_combos(input_strategies, input_tf_map)
+                if combos <= 0:
+                    combos = len(input_strategies) * len(timeframes)
+                print(f"[progress] Starting Stage 2 (90d) for objective={objective} with {len(input_strategies)} strategies × {combos} combos", flush=True)
                 try:
                     g = json.loads(root_progress_path.read_text()) if root_progress_path.exists() else {}
                     g.setdefault('stage_time_starts', {})
@@ -2298,7 +2464,7 @@ def main():
                 res2 = stage_run(
                     stage2.label,
                     cache_map if cache_map else stage2.csv_path,
-                    top1,
+                    input_strategies,
                     timeframes,
                     args.workers,
                     args.calls,
@@ -2315,14 +2481,27 @@ def main():
                     resume_state=stage2_resume_state,
                     rerun_errors=rerun_errors,
                     rerun_zero_trades=rerun_zero_trades,
+                    strategy_timeframes=input_tf_map if input_tf_map else None,
                 )
-                top2 = select_top(res2, stage2.top_n)
-                (s2_dir / 'summary.json').write_text(json.dumps({'top': top2, 'from': len(top1)}, indent=2))
+                top2_entries = select_top(res2, stage2.top_n)
+                if top2_entries:
+                    current_strategies = [entry['strategy'] for entry in top2_entries]
+                    current_tf_map = {entry['strategy']: [entry['timeframe']] for entry in top2_entries if entry.get('timeframe')}
+                else:
+                    current_strategies = input_strategies[:stage2.top_n]
+                    if input_tf_map:
+                        current_tf_map = {s: input_tf_map.get(s, []) for s in current_strategies if input_tf_map.get(s)}
+                stage2_summary = {
+                    'top': top2_entries,
+                    'from': len(input_strategies),
+                    'top_strategies': current_strategies,
+                    'timeframe_map': current_tf_map,
+                }
+                (s2_dir / 'summary.json').write_text(json.dumps(stage2_summary, indent=2))
                 aggregate_stage(s2_dir)
                 try:
                     g = json.loads(root_progress_path.read_text()) if root_progress_path.exists() else {}
                     g.setdefault('stage_units', {'completed': 0, 'total': stage_units_total})
-                    # Correct total if parent initialized a different set of objectives
                     try:
                         exp_total = max(1, len(g.get('objectives', objectives)) * len(stages_to_run))
                         if int(g['stage_units'].get('total', 0) or 0) != exp_total:
@@ -2350,17 +2529,24 @@ def main():
                 except Exception:
                     pass
                 if args.stage == '90d':
-                    print(json.dumps({'stage': '90d', 'objective': objective, 'top': top2, 'from': len(top1)}, indent=2))
+                    print(json.dumps({'stage': '90d', 'objective': objective, 'top': top2_entries, 'from': len(input_strategies)}, indent=2))
                     continue
             else:
-                top2 = load_seed_strategies()
-                if not top2:
-                    raise SystemExit('No seed strategies provided for 1y. Use --from-summary or --strategies-file')
+                if not current_strategies:
+                    current_strategies = list(base_seed_strategies)
+                if not current_tf_map:
+                    current_tf_map = {k: list(v) for k, v in base_seed_map.items()}
 
             # Stage 3
             s3_dir = out_root / f"{obj_tag}_1y"
             s3_dir.mkdir(exist_ok=True)
-            print(f"[progress] Starting Stage 3 (1y) for objective={objective} with {len(top2)} strategies × {len(timeframes)} TFs", flush=True)
+            input_strategies = current_strategies or list(base_seed_strategies)
+            input_tf_map = current_tf_map
+            stage3_input_count = len(input_strategies)
+            combos = _count_combos(input_strategies, input_tf_map)
+            if combos <= 0:
+                combos = len(input_strategies) * len(timeframes)
+            print(f"[progress] Starting Stage 3 (1y) for objective={objective} with {len(input_strategies)} strategies × {combos} combos", flush=True)
             try:
                 g = json.loads(root_progress_path.read_text()) if root_progress_path.exists() else {}
                 g.setdefault('stage_time_starts', {})
@@ -2372,7 +2558,7 @@ def main():
             res3 = stage_run(
                 stage3.label,
                 cache_map if cache_map else stage3.csv_path,
-                top2,
+                input_strategies,
                 timeframes,
                 args.workers,
                 args.calls,
@@ -2384,14 +2570,31 @@ def main():
                 root_progress_path=root_progress_path,
                 acq_funcs=base_opts.get('acq_funcs'),
                 initial_params=base_opts.get('initial_params'),
-                    bounds_override=base_opts.get('bounds_override'),
-                    resume_mode=resume_mode,
-                    resume_state=stage3_resume_state,
-                    rerun_errors=rerun_errors,
-                    rerun_zero_trades=rerun_zero_trades,
+                bounds_override=base_opts.get('bounds_override'),
+                resume_mode=resume_mode,
+                resume_state=stage3_resume_state,
+                rerun_errors=rerun_errors,
+                rerun_zero_trades=rerun_zero_trades,
+                strategy_timeframes=input_tf_map if input_tf_map else None,
             )
-            top3 = select_top(res3, stage3.top_n)
-            (s3_dir / 'summary.json').write_text(json.dumps({'top': top3, 'from': len(top2)}, indent=2))
+            top3_entries = select_top(res3, stage3.top_n)
+            if top3_entries:
+                current_strategies = [entry['strategy'] for entry in top3_entries]
+                current_tf_map = {entry['strategy']: [entry['timeframe']] for entry in top3_entries if entry.get('timeframe')}
+                tf_summary_map = current_tf_map
+            else:
+                if input_tf_map:
+                    current_tf_map = {s: input_tf_map.get(s, []) for s in input_strategies if input_tf_map.get(s)}
+                    tf_summary_map = {s: input_tf_map.get(s, []) for s in input_strategies if input_tf_map.get(s)}
+                else:
+                    tf_summary_map = {}
+            stage3_summary = {
+                'top': top3_entries,
+                'from': len(input_strategies),
+                'top_strategies': [entry['strategy'] for entry in top3_entries] if top3_entries else input_strategies,
+                'timeframe_map': tf_summary_map,
+            }
+            (s3_dir / 'summary.json').write_text(json.dumps(stage3_summary, indent=2))
             aggregate_stage(s3_dir)
             try:
                 g = json.loads(root_progress_path.read_text()) if root_progress_path.exists() else {}
@@ -2426,12 +2629,12 @@ def main():
 
             # Collect final objective summary when running full
             overall_summary[obj] = {
-                'stage1_total': len(strategies_all),
-                'stage1_top': top1,
-                'stage2_from': len(top1),
-                'stage2_top': top2,
-                'stage3_from': len(top2),
-                'stage3_top': top3,
+                'stage1_total': stage1_input_count,
+                'stage1_top': top1_entries,
+                'stage2_from': stage2_input_count,
+                'stage2_top': top2_entries,
+                'stage3_from': stage3_input_count,
+                'stage3_top': top3_entries,
             }
     finally:
         # Cleanup cache directory unless using a shared cache provided by parent

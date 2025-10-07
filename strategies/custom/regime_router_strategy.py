@@ -21,18 +21,13 @@ def _atr(df: pd.DataFrame, n: int) -> pd.Series:
 
 
 def _rolling_r2(logp: pd.Series, n: int) -> pd.Series:
-    y = logp.astype(float)
-    x = np.arange(len(y))
-    r2 = pd.Series(np.nan, index=y.index)
     n = max(5, int(n))
-    for i in range(n, len(y)):
-        yy = y.iloc[i - n : i]
-        xx = x[i - n : i]
-        xx = (xx - xx.mean()) / (xx.std() + 1e-12)
-        yy = (yy - yy.mean()) / (yy.std() + 1e-12)
-        r = np.corrcoef(xx, yy)[0, 1]
-        r2.iloc[i] = r * r
-    return r2
+    y = logp.astype(float)
+    if y.empty:
+        return pd.Series(np.nan, index=y.index)
+    x = pd.Series(np.arange(len(y), dtype=float), index=y.index, dtype=float)
+    corr = y.rolling(window=n, min_periods=n).corr(x)
+    return corr.pow(2)
 
 
 class RegimeRouterStrategy(BaseStrategy):
@@ -58,7 +53,7 @@ class RegimeRouterStrategy(BaseStrategy):
             d['close'] = d['price']
         for c in ('high', 'low', 'close'):
             if c not in d:
-                d[c] = d.get('close', pd.Series(index=d.index)).fillna(method='ffill')
+                d[c] = d.get('close', pd.Series(index=d.index)).ffill()
         atr = _atr(d, int(self.parameters['atr_len']))
         ema_b = _ema(d['close'], int(self.parameters['ema_base']))
         logp = np.log(d['close'].replace(0, np.nan)).replace([-np.inf, np.inf], np.nan).ffill()
@@ -70,7 +65,11 @@ class RegimeRouterStrategy(BaseStrategy):
         return d
 
     def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
-        d = self.calculate_indicators(data)
+        required_cols = {'atr', 'ema_base', 'r2', 'kel_up', 'kel_dn', 'kel_mid'}
+        if required_cols.issubset(data.columns):
+            d = data.copy()
+        else:
+            d = self.calculate_indicators(data)
         price = d.get('price', d.get('close', d['close']))
         trending = d['r2'] > float(self.parameters['r2_trend_thr'])
         ranging = ~trending

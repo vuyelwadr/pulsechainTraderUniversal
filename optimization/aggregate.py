@@ -22,10 +22,13 @@ Behavior:
 import sys
 import json
 import csv
+import gzip
 from pathlib import Path
+from typing import Any, Tuple
 import math
 import pandas as pd
 from datetime import datetime
+import concurrent.futures
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -55,13 +58,14 @@ def _compute_cps_fallback(row: dict) -> float:
                     # Try resolving relative to current stage dir
                     p = Path(row.get('stage_dir', '')).joinpath(path)
                 if p.exists():
-                    jd = json.loads(p.read_text())
-                    res = jd.get('results', {}) or {}
-                    duration_days = int(res.get('duration_days', duration_days) or duration_days)
-                    total_trades = int(res.get('total_trades', total_trades) or total_trades)
-                    win_rate_pct = float(res.get('win_rate_pct', 0.0) or 0.0)
-                    rev_catches = int(res.get('reversal_catches', 0) or 0)
-                    rev_opps = int(res.get('reversal_opportunities', 0) or 0)
+                    jd = _read_stage_json(p)
+                    if isinstance(jd, dict):
+                        res = jd.get('results', {}) or {}
+                        duration_days = int(res.get('duration_days', duration_days) or duration_days)
+                        total_trades = int(res.get('total_trades', total_trades) or total_trades)
+                        win_rate_pct = float(res.get('win_rate_pct', 0.0) or 0.0)
+                        rev_catches = int(res.get('reversal_catches', 0) or 0)
+                        rev_opps = int(res.get('reversal_opportunities', 0) or 0)
         except Exception:
             pass
 
@@ -116,10 +120,11 @@ def _compute_utility_fallback(row: dict) -> float:
                 if not p.exists():
                     p = Path(row.get('stage_dir', '')).joinpath(path)
                 if p.exists():
-                    jd = json.loads(p.read_text())
-                    res = jd.get('results', {}) or {}
-                    duration_days = int(res.get('duration_days', duration_days) or duration_days)
-                    total_trades = int(res.get('total_trades', total_trades) or total_trades)
+                    jd = _read_stage_json(p)
+                    if isinstance(jd, dict):
+                        res = jd.get('results', {}) or {}
+                        duration_days = int(res.get('duration_days', duration_days) or duration_days)
+                        total_trades = int(res.get('total_trades', total_trades) or total_trades)
         except Exception:
             pass
         total_return = float(row.get('total_return_pct') or 0.0) / 100.0
@@ -152,6 +157,17 @@ def _compute_utility_fallback(row: dict) -> float:
         return 0.0
 
 
+def _read_stage_json(path: Path) -> Any:
+    try:
+        if path.suffix == '.gz' or path.name.endswith('.json.gz'):
+            with gzip.open(path, 'rt', encoding='utf-8') as fh:
+                return json.load(fh)
+        with path.open('r', encoding='utf-8') as fh:
+            return json.load(fh)
+    except Exception:
+        return None
+
+
 def load_results(stage_dir: Path):
     """Load per-strategy/timeframe results with robust fallbacks.
 
@@ -161,23 +177,33 @@ def load_results(stage_dir: Path):
     - Ensures all fields are concrete (no NaN).
     """
     rows = []
-    for p in stage_dir.glob("*.json"):
-        if p.name == 'summary.json':
-            continue
-        try:
-            d = json.loads(p.read_text())
+    seen = set()
+    for pattern in ("*.json", "*.json.gz"):
+        for p in stage_dir.glob(pattern):
+            if p.name.startswith('_'):
+                continue
+            if p.name.startswith('summary.json'):
+                continue
+            base = p.name.split('.json')[0]
+            if base in seen and p.suffix == '.gz':
+                continue
+            seen.add(base)
+            d = _read_stage_json(p)
+            if not isinstance(d, dict):
+                continue
             objective = d.get('objective', '') or ''
             res = d.get('results_agg')
             if not res:
                 continue
             s = d.get('strategy')
             tf = d.get('timeframe')
-            # Pull OOS metrics (percent style)
-            ret = float(res.get('total_return_pct') or 0.0)
+            ret_source = res.get('oos_return_pct', res.get('total_return_pct'))
+            ret = float(ret_source or 0.0)
+            if math.isnan(ret):
+                continue
             dd = float(res.get('max_drawdown_pct') or 0.0)
             sh = float(res.get('sharpe_ratio') or 0.0)
             nt = int(res.get('total_trades') or 0)
-            # Prefer stored objective score if present; else MAR fallback
             score_val = d.get('score', None)
             try:
                 score = float(score_val) if score_val is not None and score_val != '' else (ret / (dd if dd > 0.0 else 1e-9))
@@ -199,6 +225,7 @@ def load_results(stage_dir: Path):
                 'risk_adjusted_score': '',
                 'activity_score': '',
                 'trend_detection_score': '',
+                'oos_return_pct': float(res.get('oos_return_pct') or ret),
                 'total_return_pct': ret,
                 'max_drawdown_pct': dd,
                 'sharpe_ratio': sh,
@@ -208,23 +235,35 @@ def load_results(stage_dir: Path):
                 'path': str(p),
             }
             rows.append(row)
-        except Exception:
-            continue
     return rows
 
 
 def write_csv(rows, out_path: Path):
     if not rows:
         return
+
+    def _safe_float(val: Any, default: float = float('-inf')) -> float:
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            return default
+
+    def _sort_key(row: dict) -> Tuple[float, float]:
+        ret = _safe_float(row.get('oos_return_pct'), default=float('-inf'))
+        score = _safe_float(row.get('score'), default=float('-inf'))
+        return (ret, score)
+
+    ordered = sorted(rows, key=_sort_key, reverse=True)
+
     keys = [
         'strategy','timeframe','objective','score','score_cv','utility','weight_reliability','pdr','cps','cps_cv',
         'profit_score','preservation_score','risk_adjusted_score','activity_score','trend_detection_score',
-        'total_return_pct','max_drawdown_pct','sharpe_ratio','total_trades','bh_return_pct','file'
+        'oos_return_pct','total_return_pct','max_drawdown_pct','sharpe_ratio','total_trades','bh_return_pct','file'
     ]
     with out_path.open('w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=keys)
         w.writeheader()
-        for r in rows:
+        for r in ordered:
             w.writerow({k: r.get(k) for k in keys})
 
 
@@ -354,6 +393,113 @@ def _resample_ohlc(df: pd.DataFrame, timeframe: str) -> pd.DataFrame:
     return out.reset_index()
 
 
+def _process_dataset_row(r, stage_dir, price_df):
+    """Process a single row to build dataset dict for HTML dashboard."""
+    # Load per-run JSON for trades and OOS windows
+    path = r.get('path') or ''
+    if not path:
+        return None
+    try:
+        d = json.loads(Path(path).read_text())
+    except Exception:
+        try:
+            d = json.loads((stage_dir / Path(path).name).read_text())
+        except Exception:
+            return None
+    folds = d.get('folds') or []
+    if not folds:
+        return None
+    # gather OOS window bounds
+    ts_list = []
+    trades = []
+    equity_pts = []
+    for f in folds:
+        try:
+            os = pd.to_datetime(f.get('oos_start'))
+            oe = pd.to_datetime(f.get('oos_end'))
+            if os is not None and oe is not None:
+                ts_list.append(os)
+                ts_list.append(oe)
+        except Exception:
+            pass
+        om = f.get('oos_metrics') or {}
+        for t in (om.get('trades') or []):
+            tt = t.get('timestamp')
+            try:
+                tt = pd.to_datetime(tt).isoformat()
+            except Exception:
+                tt = str(tt)
+            trades.append({
+                'timestamp': tt,
+                'type': t.get('type'),
+                'price': t.get('price'),
+                'signal_strength': t.get('signal_strength'),
+            })
+        for ph in (om.get('portfolio_history') or []):
+            tt = ph.get('timestamp')
+            try:
+                tt = pd.to_datetime(tt).isoformat()
+            except Exception:
+                tt = str(tt)
+            tv = ph.get('total_value')
+            if tv is not None:
+                equity_pts.append([tt, float(tv)])
+    if not ts_list:
+        return None
+    start = min(ts_list)
+    end = max(ts_list)
+    tf = r.get('timeframe') or d.get('timeframe')
+    ohlc = []
+    bh_line = []
+    eq_line = []
+    if price_df is not None and tf:
+        try:
+            # slice 5m source by window and resample to tf
+            p = price_df.copy()
+            if 'timestamp' in p.columns:
+                p['timestamp'] = pd.to_datetime(p['timestamp'])
+            else:
+                p.index = pd.to_datetime(p.index)
+                p = p.reset_index().rename(columns={'index':'timestamp'})
+            p = p[(p['timestamp']>=start) & (p['timestamp']<=end)]
+            p_tf = _resample_ohlc(p, tf)
+            if not p_tf.empty:
+                c0 = float(p_tf.iloc[0]['close'])
+                for _, row in p_tf.iterrows():
+                    ts = pd.to_datetime(row['timestamp']).isoformat()
+                    ohlc.append([ts, float(row['open']), float(row['high']), float(row['low']), float(row['close'])])
+                    bh_line.append([ts, ((float(row['close'])/c0)-1.0)*100.0 if c0>0 else 0.0])
+        except Exception:
+            pass
+    # Build equity curve (percent)
+    if equity_pts:
+        equity_pts.sort(key=lambda x: x[0])
+        e0 = equity_pts[0][1]
+        if e0 and e0 != 0:
+            for ts, tv in equity_pts:
+                eq_line.append([ts, ((tv/e0)-1.0)*100.0])
+        else:
+            for ts, tv in equity_pts:
+                eq_line.append([ts, 0.0])
+    return {
+        'id': f"{r.get('strategy')}_{tf}",
+        'strategy': r.get('strategy'),
+        'timeframe': tf,
+        'objective': r.get('objective',''),
+        'score': r.get('score'),
+        'total_return_pct': r.get('total_return_pct'),
+        'max_drawdown_pct': r.get('max_drawdown_pct'),
+        'sharpe_ratio': r.get('sharpe_ratio'),
+        'total_trades': r.get('total_trades'),
+        'bh_return_pct': r.get('bh_return_pct', 0.0),
+        'ohlc': ohlc,
+        'bh_line': bh_line,
+        'eq_line': eq_line,
+        'trades': trades,
+        'file': r.get('file')
+    }
+
+
 def generate_html_dashboard(stage_dir: Path, rows_sorted: list, top_n: int = 100):
     # Try to locate a 5m OHLCV source
     asset = Config.ASSET_SYMBOL.lower()
@@ -381,115 +527,19 @@ def generate_html_dashboard(stage_dir: Path, rows_sorted: list, top_n: int = 100
             price_df = pd.read_csv(ohlc_path)
         except Exception:
             price_df = None
+    
+    # Process top_n rows in parallel
+    top_rows = rows_sorted[:top_n]
     datasets = []
-    used = 0
-    for r in rows_sorted:
-        if used >= top_n:
-            break
-        # Load per-run JSON for trades and OOS windows
-        path = r.get('path') or ''
-        if not path:
-            continue
-        try:
-            d = json.loads(Path(path).read_text())
-        except Exception:
-            try:
-                d = json.loads((stage_dir / Path(path).name).read_text())
-            except Exception:
-                continue
-        folds = d.get('folds') or []
-        if not folds:
-            continue
-        # gather OOS window bounds
-        ts_list = []
-        trades = []
-        equity_pts = []
-        for f in folds:
-            try:
-                os = pd.to_datetime(f.get('oos_start'))
-                oe = pd.to_datetime(f.get('oos_end'))
-                if os is not None and oe is not None:
-                    ts_list.append(os)
-                    ts_list.append(oe)
-            except Exception:
-                pass
-            om = f.get('oos_metrics') or {}
-            for t in (om.get('trades') or []):
-                tt = t.get('timestamp')
-                try:
-                    tt = pd.to_datetime(tt).isoformat()
-                except Exception:
-                    tt = str(tt)
-                trades.append({
-                    'timestamp': tt,
-                    'type': t.get('type'),
-                    'price': t.get('price'),
-                    'signal_strength': t.get('signal_strength'),
-                })
-            for ph in (om.get('portfolio_history') or []):
-                tt = ph.get('timestamp')
-                try:
-                    tt = pd.to_datetime(tt).isoformat()
-                except Exception:
-                    tt = str(tt)
-                tv = ph.get('total_value')
-                if tv is not None:
-                    equity_pts.append([tt, float(tv)])
-        if not ts_list:
-            continue
-        start = min(ts_list)
-        end = max(ts_list)
-        tf = r.get('timeframe') or d.get('timeframe')
-        ohlc = []
-        bh_line = []
-        eq_line = []
-        if price_df is not None and tf:
-            try:
-                # slice 5m source by window and resample to tf
-                p = price_df.copy()
-                if 'timestamp' in p.columns:
-                    p['timestamp'] = pd.to_datetime(p['timestamp'])
-                else:
-                    p.index = pd.to_datetime(p.index)
-                    p = p.reset_index().rename(columns={'index':'timestamp'})
-                p = p[(p['timestamp']>=start) & (p['timestamp']<=end)]
-                p_tf = _resample_ohlc(p, tf)
-                if not p_tf.empty:
-                    c0 = float(p_tf.iloc[0]['close'])
-                    for _, row in p_tf.iterrows():
-                        ts = pd.to_datetime(row['timestamp']).isoformat()
-                        ohlc.append([ts, float(row['open']), float(row['high']), float(row['low']), float(row['close'])])
-                        bh_line.append([ts, ((float(row['close'])/c0)-1.0)*100.0 if c0>0 else 0.0])
-            except Exception:
-                pass
-        # Build equity curve (percent)
-        if equity_pts:
-            equity_pts.sort(key=lambda x: x[0])
-            e0 = equity_pts[0][1]
-            if e0 and e0 != 0:
-                for ts, tv in equity_pts:
-                    eq_line.append([ts, ((tv/e0)-1.0)*100.0])
-            else:
-                for ts, tv in equity_pts:
-                    eq_line.append([ts, 0.0])
-        datasets.append({
-            'id': f"{r.get('strategy')}_{tf}",
-            'strategy': r.get('strategy'),
-            'timeframe': tf,
-            'objective': r.get('objective',''),
-            'score': r.get('score'),
-            'total_return_pct': r.get('total_return_pct'),
-            'max_drawdown_pct': r.get('max_drawdown_pct'),
-            'sharpe_ratio': r.get('sharpe_ratio'),
-            'total_trades': r.get('total_trades'),
-            'bh_return_pct': r.get('bh_return_pct', 0.0),
-            'ohlc': ohlc,
-            'bh_line': bh_line,
-            'eq_line': eq_line,
-            'trades': trades,
-            'file': r.get('file')
-        })
-        used += 1
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(_process_dataset_row, r, stage_dir, price_df) for r in top_rows]
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            if result:
+                datasets.append(result)
+    
+    # Sort datasets by score descending
+    datasets.sort(key=lambda x: float(x.get('score') or 0), reverse=True)
     # Build HTML
     html_path = stage_dir / 'stage_dashboard.html'
     options = [{'id':d['id'], 'label': f"{d['strategy']} [{d['timeframe']}] - OBJ {d.get('objective','') or '?'} {d['score']:.3f}"} for d in datasets]
