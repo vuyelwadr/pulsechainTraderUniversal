@@ -325,3 +325,17 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
   1. Layer a partial profit-take (e.g., exit 50% at SMA, rest trail) to further limit DD.
   2. Inject a minimum ATR floor to avoid zero-width trails on flat chop.
   3. Re-run focussed shortlist after adjustments; if CSMA hold-out >20 % with DD <−30 %, promote to `strats_performance.json`.
+
+## 13. 2025-10-08 CSMA ATR floor experiment (run `_191822`)
+- **Run**: `reports/optimizer_run_20251008_191822` (shortlist, 200 calls, default WFO).
+- **Change**: Introduced `atr_floor_pct` (default 0.3%) to prevent the trailing stop from collapsing to zero; trail only activates once price > SMA.
+- **Walk-forward summary** (mean across 21 hold-out blocks):
+  - CSMARevertStrategy: +46.3 % return (prev +15.2 %), avg hold-out DD ≈ −27.4 %, 35 trades (vs 47).
+  - GridTradingStrategyV2Aggressive: +70.2 % (slight dip from +79 %).
+  - CompositeMomentumIndexStrategy: +56.3 % (recovered from -2.6 % last run).
+  - Strategy_62_RSIAvgs: +18.3 %; DonchianAggressive: +10.4 %.
+- **Staged results (CSMA)**: median DD still ≈ −92 %, but several samples now clamp at −73 % and a few at 0 % when the floor keeps the stop wide. Need gating + partial exits to pull DD < −40% across the board (see agent suggestions).
+- **Action items**:
+  1. Implement ER/ADX filters + split exits per plan from external report.
+  2. Integrate the AMM execution module for Grid V2 to kill PF=∞ artefacts.
+  3. Upgrade walk-forward to expanding window + embargo once the execution layer lands.

@@ -38,6 +38,7 @@ class CSMARevertStrategy(BaseStrategy):
             'rsi_max': 32.0,
             'atr_period': 48,      # ~4 hours of 5m bars
             'atr_mult': 1.8,       # trailing stop multiple
+            'atr_floor_pct': 0.003,  # 0.3% price floor for ATR
             'timeframe_minutes': 5,
         }
         if parameters:
@@ -54,12 +55,16 @@ class CSMARevertStrategy(BaseStrategy):
         n_sma = int(self.parameters['n_sma'])
         rsi_period = int(self.parameters['rsi_period'])
         atr_period = int(self.parameters.get('atr_period', 48))
+        atr_floor_pct = float(self.parameters.get('atr_floor_pct', 0.0))
 
         df['sma'] = _sma(price, n_sma)
         df['rsi'] = _rsi(price, rsi_period)
         # Use absolute price changes as ATR proxy (no OHLC available)
-        df['atr_abs'] = price.diff().abs().rolling(atr_period, min_periods=atr_period).mean()
-        df['atr_abs'] = df['atr_abs'].ffill().fillna(0.0)
+        atr = price.diff().abs().rolling(atr_period, min_periods=atr_period).mean()
+        atr = atr.ffill().fillna(0.0)
+        if atr_floor_pct > 0:
+            atr = atr.clip(lower=price * atr_floor_pct)
+        df['atr_abs'] = atr
         return df
 
     def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:

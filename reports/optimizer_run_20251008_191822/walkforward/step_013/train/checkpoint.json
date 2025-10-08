@@ -1,0 +1,112 @@
+{
+  "next_trial_id": 201,
+  "completed": 200,
+  "total_requests": 200,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 6770.7001856934185,
+      "trial_id": 99,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 31,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 110,
+        "oversold": 32,
+        "signal_threshold": 0.3379342314285668
+      }
+    },
+    "profit_biased": {
+      "score": 0.35553191045605775,
+      "trial_id": 99,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 31,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 110,
+        "oversold": 32,
+        "signal_threshold": 0.3379342314285668
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.35553191045605775,
+      "trial_id": 99,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 31,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 110,
+        "oversold": 32,
+        "signal_threshold": 0.3379342314285668
+      }
+    },
+    "mar": {
+      "score": 5770700185.6934185,
+      "trial_id": 99,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 31,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 110,
+        "oversold": 32,
+        "signal_threshold": 0.3379342314285668
+      }
+    },
+    "utility": {
+      "score": 2.658867425134412,
+      "trial_id": 173,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 5.772708207928095,
+        "exit_days": 2.917453824114517,
+        "ema_exit_days": 2.189817282584095,
+        "trailing_drawdown_pct": 0.12392860726176047,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps": {
+      "score": 71.98,
+      "trial_id": 173,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 5.772708207928095,
+        "exit_days": 2.917453824114517,
+        "ema_exit_days": 2.189817282584095,
+        "trailing_drawdown_pct": 0.12392860726176047,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2": {
+      "score": 0.35553191045605775,
+      "trial_id": 99,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 31,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 110,
+        "oversold": 32,
+        "signal_threshold": 0.3379342314285668
+      }
+    }
+  }
+}

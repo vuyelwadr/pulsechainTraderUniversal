@@ -1,0 +1,108 @@
+{
+  "next_trial_id": 201,
+  "completed": 200,
+  "total_requests": 200,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 437891.3608863519,
+      "trial_id": 36,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 22,
+        "roc_period": 7,
+        "tsi_long": 25,
+        "tsi_short": 7,
+        "signal_threshold": 0.8600933928219368
+      }
+    },
+    "profit_biased": {
+      "score": 0.7400182886803108,
+      "trial_id": 25,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 26,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 54,
+        "oversold": 28,
+        "signal_threshold": 0.9544503206290276
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.7400182886803108,
+      "trial_id": 25,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 26,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 54,
+        "oversold": 28,
+        "signal_threshold": 0.9544503206290276
+      }
+    },
+    "mar": {
+      "score": 436891360886.35187,
+      "trial_id": 36,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 22,
+        "roc_period": 7,
+        "tsi_long": 25,
+        "tsi_short": 7,
+        "signal_threshold": 0.8600933928219368
+      }
+    },
+    "utility": {
+      "score": 137.40517613798607,
+      "trial_id": 36,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 22,
+        "roc_period": 7,
+        "tsi_long": 25,
+        "tsi_short": 7,
+        "signal_threshold": 0.8600933928219368
+      }
+    },
+    "cps": {
+      "score": 70.0,
+      "trial_id": 160,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 14,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 61,
+        "oversold": 30,
+        "signal_threshold": 0.6
+      }
+    },
+    "cps_v2": {
+      "score": 0.7400182886803108,
+      "trial_id": 25,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 26,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 54,
+        "oversold": 28,
+        "signal_threshold": 0.9544503206290276
+      }
+    }
+  }
+}
