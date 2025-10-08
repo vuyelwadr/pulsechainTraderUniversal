@@ -1,0 +1,473 @@
+{
+  "metadata": {
+    "asset_address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    "asset_decimals": 18,
+    "quote_address": "0xefD766cCb38EaF1dfd701853BFCe31359239F305",
+    "quote_decimals": 18,
+    "chain_id": 369,
+    "step_notional": "5000",
+    "generated_at": "2025-10-07T22:38:06.459267"
+  },
+  "entries": {
+    "5000": {
+      "notional_dai": "5000",
+      "token_amount": "1517619.71237525643067392",
+      "buy": {
+        "amount_in_wei": "5000000000000000000000",
+        "dest_amount_raw": "1517619712375256430673920",
+        "gas_use_estimate": 1755000,
+        "gas_use_estimate_usd": 0.18944996768935174
+      },
+      "sell": {
+        "amount_in_raw": "1517619712375256430673920",
+        "dest_amount_raw": "4854294257302173827404",
+        "gas_use_estimate": 2655000,
+        "gas_use_estimate_usd": 0.30513587847134804
+      },
+      "derived": {
+        "token_per_dai": "303.523942475051286134784",
+        "dai_per_token": "0.003198623619420851160445942004",
+        "roundtrip_loss_dai": "145.705742697826172596",
+        "loss_rate": "0.0291411485395652345192"
+      },
+      "generated_at": "2025-10-07T22:34:05.510385"
+    },
+    "10000": {
+      "notional_dai": "10000",
+      "token_amount": "3005535.357440189672655365",
+      "buy": {
+        "amount_in_wei": "10000000000000000000000",
+        "dest_amount_raw": "3005535357440189672655365",
+        "gas_use_estimate": 2385000,
+        "gas_use_estimate_usd": 0.2574576483983498
+      },
+      "sell": {
+        "amount_in_raw": "3005535357440189672655365",
+        "dest_amount_raw": "9534972482682396559394",
+        "gas_use_estimate": 2775000,
+        "gas_use_estimate_usd": 0.2995576412182058
+      },
+      "derived": {
+        "token_per_dai": "300.5535357440189672655365",
+        "dai_per_token": "0.003172470574694326504178445683",
+        "roundtrip_loss_dai": "465.027517317603440606",
+        "loss_rate": "0.0465027517317603440606"
+      },
+      "generated_at": "2025-10-07T22:33:55.781514"
+    },
+    "15000": {
+      "notional_dai": "15000",
+      "token_amount": "4471163.218274219851624999",
+      "buy": {
+        "amount_in_wei": "15000000000000000000000",
+        "dest_amount_raw": "4471163218274219851624999",
+        "gas_use_estimate": 2385000,
+        "gas_use_estimate_usd": 0.2741051111691771
+      },
+      "sell": {
+        "amount_in_raw": "4471163218274219851624999",
+        "dest_amount_raw": "14074483515041804899331",
+        "gas_use_estimate": 2775000,
+        "gas_use_estimate_usd": 0.2821796090304
+      },
+      "derived": {
+        "token_per_dai": "298.0775478849479901083332667",
+        "dai_per_token": "0.003147834876060345620484511444",
+        "roundtrip_loss_dai": "925.516484958195100669",
+        "loss_rate": "0.06170109899721300671126666667"
+      },
+      "generated_at": "2025-10-07T22:34:26.603659"
+    },
+    "20000": {
+      "notional_dai": "20000",
+      "token_amount": "5906023.045322458551134392",
+      "buy": {
+        "amount_in_wei": "20000000000000000000000",
+        "dest_amount_raw": "5906023045322458551134392",
+        "gas_use_estimate": 2265000,
+        "gas_use_estimate_usd": 0.24450380445377876
+      },
+      "sell": {
+        "amount_in_raw": "5906023045322458551134392",
+        "dest_amount_raw": "18447281251875927300830",
+        "gas_use_estimate": 2565000,
+        "gas_use_estimate_usd": 0.27215679930038433
+      },
+      "derived": {
+        "token_per_dai": "295.3011522661229275567196",
+        "dai_per_token": "0.003123469229685123576843896245",
+        "roundtrip_loss_dai": "1552.71874812407269917",
+        "loss_rate": "0.0776359374062036349585"
+      },
+      "generated_at": "2025-10-07T22:34:00.030717"
+    },
+    "25000": {
+      "notional_dai": "25000",
+      "token_amount": "7325595.242001797110090923",
+      "buy": {
+        "amount_in_wei": "25000000000000000000000",
+        "dest_amount_raw": "7325595242001797110090923",
+        "gas_use_estimate": 2385000,
+        "gas_use_estimate_usd": 0.25449998997148104
+      },
+      "sell": {
+        "amount_in_raw": "7325595242001797110090923",
+        "dest_amount_raw": "22701366247808727163643",
+        "gas_use_estimate": 2815000,
+        "gas_use_estimate_usd": 0.2749708326893352
+      },
+      "derived": {
+        "token_per_dai": "293.02380968007188440363692",
+        "dai_per_token": "0.003098910804906187591924920164",
+        "roundtrip_loss_dai": "2298.633752191272836357",
+        "loss_rate": "0.09194535008765091345428"
+      },
+      "generated_at": "2025-10-07T22:34:57.582369"
+    },
+    "30000": {
+      "notional_dai": "30000",
+      "token_amount": "8708967.75661210753030423",
+      "buy": {
+        "amount_in_wei": "30000000000000000000000",
+        "dest_amount_raw": "8708967756612107530304230",
+        "gas_use_estimate": 2385000,
+        "gas_use_estimate_usd": 0.2542574325416517
+      },
+      "sell": {
+        "amount_in_raw": "8708967756612107530304230",
+        "dest_amount_raw": "26786691660423372967455",
+        "gas_use_estimate": 2815000,
+        "gas_use_estimate_usd": 0.27787302050199975
+      },
+      "derived": {
+        "token_per_dai": "290.2989252204035843434743333",
+        "dai_per_token": "0.003075759654763461420877069847",
+        "roundtrip_loss_dai": "3213.308339576627032545",
+        "loss_rate": "0.1071102779858875677515"
+      },
+      "generated_at": "2025-10-07T22:35:07.110216"
+    },
+    "35000": {
+      "notional_dai": "35000",
+      "token_amount": "10077998.857480982950338188",
+      "buy": {
+        "amount_in_wei": "35000000000000000000000",
+        "dest_amount_raw": "10077998857480982950338188",
+        "gas_use_estimate": 2845000,
+        "gas_use_estimate_usd": 0.30358594191566607
+      },
+      "sell": {
+        "amount_in_raw": "10077998857480982950338188",
+        "dest_amount_raw": "30783748329256461044062",
+        "gas_use_estimate": 2815000,
+        "gas_use_estimate_usd": 0.2749708326893352
+      },
+      "derived": {
+        "token_per_dai": "287.9428244994566557239482286",
+        "dai_per_token": "0.003054549694298231325959737253",
+        "roundtrip_loss_dai": "4216.251670743538955938",
+        "loss_rate": "0.1204643334498153987410857143"
+      },
+      "generated_at": "2025-10-07T22:35:00.505754"
+    },
+    "40000": {
+      "notional_dai": "40000",
+      "token_amount": "11419335.680693708059309028",
+      "buy": {
+        "amount_in_wei": "40000000000000000000000",
+        "dest_amount_raw": "11419335680693708059309028",
+        "gas_use_estimate": 2715000,
+        "gas_use_estimate_usd": 0.2894377062266601
+      },
+      "sell": {
+        "amount_in_raw": "11419335680693708059309028",
+        "dest_amount_raw": "34640355950681907427888",
+        "gas_use_estimate": 2815000,
+        "gas_use_estimate_usd": 0.2749708326893352
+      },
+      "derived": {
+        "token_per_dai": "285.4833920173427014827257",
+        "dai_per_token": "0.003033482587717182871098065905",
+        "roundtrip_loss_dai": "5359.644049318092572112",
+        "loss_rate": "0.1339911012329523143028"
+      },
+      "generated_at": "2025-10-07T22:34:57.429646"
+    },
+    "45000": {
+      "notional_dai": "45000",
+      "token_amount": "12692107.461407146131223898",
+      "buy": {
+        "amount_in_wei": "45000000000000000000000",
+        "dest_amount_raw": "12692107461407146131223898",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.2813032088575868
+      },
+      "sell": {
+        "amount_in_raw": "12692107461407146131223898",
+        "dest_amount_raw": "38450547147620901279470",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.31417024211861627
+      },
+      "derived": {
+        "token_per_dai": "282.0468324757143584716421778",
+        "dai_per_token": "0.003029484840444139558729955876",
+        "roundtrip_loss_dai": "6549.45285237909872053",
+        "loss_rate": "0.1455433967195355271228888889"
+      },
+      "generated_at": "2025-10-07T22:35:58.154510"
+    },
+    "50000": {
+      "notional_dai": "50000",
+      "token_amount": "13981919.156257476938164039",
+      "buy": {
+        "amount_in_wei": "50000000000000000000000",
+        "dest_amount_raw": "13981919156257476938164039",
+        "gas_use_estimate": 2935000,
+        "gas_use_estimate_usd": 0.27025365564550485
+      },
+      "sell": {
+        "amount_in_raw": "13981919156257476938164039",
+        "dest_amount_raw": "42082567214446322608201",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.31417024211861627
+      },
+      "derived": {
+        "token_per_dai": "279.63838312514953876328078",
+        "dai_per_token": "0.003009784761601390312262158238",
+        "roundtrip_loss_dai": "7917.432785553677391799",
+        "loss_rate": "0.15834865571107354783598"
+      },
+      "generated_at": "2025-10-07T22:35:59.585148"
+    },
+    "55000": {
+      "notional_dai": "55000",
+      "token_amount": "15251200.442408391306665161",
+      "buy": {
+        "amount_in_wei": "55000000000000000000000",
+        "dest_amount_raw": "15251200442408391306665161",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.30658233898125314
+      },
+      "sell": {
+        "amount_in_raw": "15251200442408391306665161",
+        "dest_amount_raw": "45628801146835756257711",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.2813032088575868
+      },
+      "derived": {
+        "token_per_dai": "277.2945534983343873939120182",
+        "dai_per_token": "0.002991817025757369833750878985",
+        "roundtrip_loss_dai": "9371.198853164243742289",
+        "loss_rate": "0.1703854336938953407688909091"
+      },
+      "generated_at": "2025-10-07T22:35:55.283316"
+    },
+    "60000": {
+      "notional_dai": "60000",
+      "token_amount": "16510581.392846835090848747",
+      "buy": {
+        "amount_in_wei": "60000000000000000000000",
+        "dest_amount_raw": "16510581392846835090848747",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.30658233898125314
+      },
+      "sell": {
+        "amount_in_raw": "16510581392846835090848747",
+        "dest_amount_raw": "49100164280852677086454",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.2813032088575868
+      },
+      "derived": {
+        "token_per_dai": "275.1763565474472515141457833",
+        "dai_per_token": "0.002973860405795594271798650923",
+        "roundtrip_loss_dai": "10899.835719147322913546",
+        "loss_rate": "0.1816639286524553818924333333"
+      },
+      "generated_at": "2025-10-07T22:35:54.956283"
+    },
+    "65000": {
+      "notional_dai": "65000",
+      "token_amount": "17803172.445610240164803718",
+      "buy": {
+        "amount_in_wei": "65000000000000000000000",
+        "dest_amount_raw": "17803172445610240164803718",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.3255331276621839
+      },
+      "sell": {
+        "amount_in_raw": "17803172445610240164803718",
+        "dest_amount_raw": "52397350747043817226698",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.30466627768151705
+      },
+      "derived": {
+        "token_per_dai": "273.8949607016960025354418154",
+        "dai_per_token": "0.002943146841222870085684249165",
+        "roundtrip_loss_dai": "12602.649252956182773302",
+        "loss_rate": "0.1938869115839412734354153846"
+      },
+      "generated_at": "2025-10-07T22:37:03.584658"
+    },
+    "70000": {
+      "notional_dai": "70000",
+      "token_amount": "19017465.127303744306790319",
+      "buy": {
+        "amount_in_wei": "70000000000000000000000",
+        "dest_amount_raw": "19017465127303744306790319",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.289434013353648
+      },
+      "sell": {
+        "amount_in_raw": "19017465127303744306790319",
+        "dest_amount_raw": "55650545022505544439812",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.3255331276621839
+      },
+      "derived": {
+        "token_per_dai": "271.6780732471963472398617",
+        "dai_per_token": "0.002926286161167030369720957010",
+        "roundtrip_loss_dai": "14349.454977494455560188",
+        "loss_rate": "0.2049922139642065080026857143"
+      },
+      "generated_at": "2025-10-07T22:36:55.713519"
+    },
+    "75000": {
+      "notional_dai": "75000",
+      "token_amount": "20268988.904152112813742048",
+      "buy": {
+        "amount_in_wei": "75000000000000000000000",
+        "dest_amount_raw": "20268988904152112813742048",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.289434013353648
+      },
+      "sell": {
+        "amount_in_raw": "20268988904152112813742048",
+        "dest_amount_raw": "58950116358045111711910",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.30466627768151705
+      },
+      "derived": {
+        "token_per_dai": "270.25318538869483751656064",
+        "dai_per_token": "0.002908389591449682525698051631",
+        "roundtrip_loss_dai": "16049.88364195488828809",
+        "loss_rate": "0.2139984485593985105078666667"
+      },
+      "generated_at": "2025-10-07T22:36:57.543033"
+    },
+    "80000": {
+      "notional_dai": "80000",
+      "token_amount": "21426629.91487546484931353",
+      "buy": {
+        "amount_in_wei": "80000000000000000000000",
+        "dest_amount_raw": "21426629914875464849313530",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.289434013353648
+      },
+      "sell": {
+        "amount_in_raw": "21426629914875464849313530",
+        "dest_amount_raw": "61975215054511730755293",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.30466627768151705
+      },
+      "derived": {
+        "token_per_dai": "267.832873935943310616419125",
+        "dai_per_token": "0.002892438768986501209807269018",
+        "roundtrip_loss_dai": "18024.784945488269244707",
+        "loss_rate": "0.2253098118186033655588375"
+      },
+      "generated_at": "2025-10-07T22:37:01.707079"
+    },
+    "85000": {
+      "notional_dai": "85000",
+      "token_amount": "22656797.316438077828973429",
+      "buy": {
+        "amount_in_wei": "85000000000000000000000",
+        "dest_amount_raw": "22656797316438077828973429",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.266540749189445
+      },
+      "sell": {
+        "amount_in_raw": "22656797316438077828973429",
+        "dest_amount_raw": "64963444121568401293101",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.27830509103522416
+      },
+      "derived": {
+        "token_per_dai": "266.5505566639773862232168118",
+        "dai_per_token": "0.002867282750260372602911886920",
+        "roundtrip_loss_dai": "20036.555878431598706899",
+        "loss_rate": "0.2357241868050776318458705882"
+      },
+      "generated_at": "2025-10-07T22:38:06.458650"
+    },
+    "90000": {
+      "notional_dai": "90000",
+      "token_amount": "23762349.596526212311174501",
+      "buy": {
+        "amount_in_wei": "90000000000000000000000",
+        "dest_amount_raw": "23762349596526212311174501",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.29799488098065297
+      },
+      "sell": {
+        "amount_in_raw": "23762349596526212311174501",
+        "dest_amount_raw": "67919869732890445470347",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.266540749189445
+      },
+      "derived": {
+        "token_per_dai": "264.0261066280690256797166778",
+        "dai_per_token": "0.002858297722495403607299401722",
+        "roundtrip_loss_dai": "22080.130267109554529653",
+        "loss_rate": "0.2453347807456617169961444444"
+      },
+      "generated_at": "2025-10-07T22:37:55.156500"
+    },
+    "95000": {
+      "notional_dai": "95000",
+      "token_amount": "24963774.861792615188455789",
+      "buy": {
+        "amount_in_wei": "95000000000000000000000",
+        "dest_amount_raw": "24963774861792615188455789",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.29799488098065297
+      },
+      "sell": {
+        "amount_in_raw": "24963774861792615188455789",
+        "dest_amount_raw": "70794400090843724602194",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.27830509103522416
+      },
+      "derived": {
+        "token_per_dai": "262.7765774925538440890083053",
+        "dai_per_token": "0.002835885216990779802662388183",
+        "roundtrip_loss_dai": "24205.599909156275397806",
+        "loss_rate": "0.2547957885174344778716421053"
+      },
+      "generated_at": "2025-10-07T22:37:57.249046"
+    },
+    "100000": {
+      "notional_dai": "100000",
+      "token_amount": "26068454.235334351170597782",
+      "buy": {
+        "amount_in_wei": "100000000000000000000000",
+        "dest_amount_raw": "26068454235334351170597782",
+        "gas_use_estimate": 2935000,
+        "gas_use_estimate_usd": 0.28628968107306596
+      },
+      "sell": {
+        "amount_in_raw": "26068454235334351170597782",
+        "dest_amount_raw": "73694852854456752577811",
+        "gas_use_estimate": 3055000,
+        "gas_use_estimate_usd": 0.266540749189445
+      },
+      "derived": {
+        "token_per_dai": "260.68454235334351170597782",
+        "dai_per_token": "0.002826974403206748111079508263",
+        "roundtrip_loss_dai": "26305.147145543247422189",
+        "loss_rate": "0.26305147145543247422189"
+      },
+      "generated_at": "2025-10-07T22:37:55.562245"
+    }
+  }
+}

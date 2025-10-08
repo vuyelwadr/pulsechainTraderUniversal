@@ -1,0 +1,113 @@
+"""Donchian breakout "champion" strategies derived from newstrats notes."""
+
+from __future__ import annotations
+
+from typing import Dict
+
+import numpy as np
+import pandas as pd
+
+from .base_strategy import BaseStrategy
+
+
+def _ema(series: pd.Series, span: int) -> pd.Series:
+    return series.ewm(span=max(1, span), adjust=False).mean()
+
+
+class DonchianChampionStrategy(BaseStrategy):
+    """Long-only Donchian breakout with EMA-confirmed exits and optional trail."""
+
+    def __init__(self, parameters: Dict | None = None):
+        defaults = {
+            'entry_days': 11.0,
+            'exit_days': 2.0,
+            'ema_exit_days': 3.0,
+            'trailing_drawdown_pct': 0.0,
+            'timeframe_minutes': 5,
+        }
+        if parameters:
+            defaults.update(parameters)
+        super().__init__('DonchianChampionStrategy', defaults)
+
+    def _window_bars(self, days: float) -> int:
+        timeframe = float(self.parameters.get('timeframe_minutes', 5))
+        bars = int(round(days * 24 * 60 / timeframe))
+        return max(1, bars)
+
+    def calculate_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
+        if not self.validate_data(data):
+            return data
+
+        df = data.copy()
+        price = df['price'] if 'price' in df else df['close']
+        df['price'] = price
+
+        entry_bars = self._window_bars(float(self.parameters['entry_days']))
+        exit_bars = self._window_bars(float(self.parameters['exit_days']))
+        ema_span = self._window_bars(float(self.parameters['ema_exit_days']))
+
+        df['donchian_high'] = price.rolling(entry_bars, min_periods=entry_bars).max().shift(1)
+        df['donchian_low'] = price.rolling(exit_bars, min_periods=exit_bars).min().shift(1)
+        df['ema_exit'] = _ema(price, ema_span)
+        return df
+
+    def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
+        df = data.copy()
+        if 'donchian_high' not in df.columns:
+            df = self.calculate_indicators(df)
+
+        df['buy_signal'] = False
+        df['sell_signal'] = False
+        df['signal_strength'] = 0.0
+
+        price = df['price'].to_numpy(float)
+        highs = df['donchian_high'].to_numpy(float)
+        lows = df['donchian_low'].to_numpy(float)
+        ema_exit = df['ema_exit'].to_numpy(float)
+        trail_pct = float(self.parameters['trailing_drawdown_pct'])
+
+        in_position = False
+        peak_price = 0.0
+
+        for i in range(len(df)):
+            px = price[i]
+            hi = highs[i]
+            lo = lows[i]
+            ema_val = ema_exit[i]
+
+            if np.isnan(px) or np.isnan(hi):
+                continue
+
+            if not in_position:
+                if px >= hi:
+                    df.iat[i, df.columns.get_loc('buy_signal')] = True
+                    df.iat[i, df.columns.get_loc('signal_strength')] = 1.0
+                    in_position = True
+                    peak_price = px
+            else:
+                peak_price = max(peak_price, px)
+                exit_donchian = (not np.isnan(lo)) and px <= lo and (not np.isnan(ema_val)) and px < ema_val
+                exit_trail = trail_pct > 0 and peak_price > 0 and px <= peak_price * (1.0 - trail_pct)
+                if exit_donchian or exit_trail:
+                    df.iat[i, df.columns.get_loc('sell_signal')] = True
+                    df.iat[i, df.columns.get_loc('signal_strength')] = 1.0
+                    in_position = False
+                    peak_price = 0.0
+
+        return df
+
+
+class DonchianChampionAggressiveStrategy(DonchianChampionStrategy):
+    """Champion v2 with default 20% trailing stop."""
+
+    def __init__(self, parameters: Dict | None = None):
+        defaults = {
+            'entry_days': 11.0,
+            'exit_days': 2.0,
+            'ema_exit_days': 3.0,
+            'trailing_drawdown_pct': 0.20,
+            'timeframe_minutes': 5,
+        }
+        if parameters:
+            defaults.update(parameters)
+        super().__init__(defaults)
