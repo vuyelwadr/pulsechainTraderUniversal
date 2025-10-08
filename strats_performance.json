@@ -1,0 +1,8 @@
+[
+  "CSMARevertStrategy",
+  "DonchianChampionDynamicStrategy",
+  "DonchianChampionAggressiveStrategy",
+  "MultiWeekBreakoutStrategy",
+  "HybridV2Strategy",
+  "TightTrendFollowStrategy"
+]

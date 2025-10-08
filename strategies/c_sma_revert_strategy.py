@@ -33,7 +33,7 @@ class CSMARevertStrategy(BaseStrategy):
         defaults = {
             'n_sma': 576,          # ~2 days on 5m bars
             'entry_drop': 0.25,    # 25% below SMA to enter
-            'exit_up': 0.05,       # 5% above SMA to exit
+            'exit_up': 0.048,      # tuned exit overshoot ~=4.8%
             'rsi_period': 14,
             'rsi_max': 30.0,
             'timeframe_minutes': 5,
@@ -94,4 +94,3 @@ class CSMARevertStrategy(BaseStrategy):
                     in_position = False
 
         return df
-

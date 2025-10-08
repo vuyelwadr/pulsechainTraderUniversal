@@ -102,14 +102,14 @@
     {
       "name": "CSMARevertStrategy",
       "file": "strategies/c_sma_revert_strategy.py",
-      "description": "SMA reversion with RSI filter; enters deep dips and exits on mean reversion.",
+      "description": "SMA reversion with RSI filter; enters deep dips and exits on mean reversion (exit_up\u22484.8%).",
       "performance_by_trade_size": {
         "5000": {
-          "total_return_pct": 5418.143852502687,
-          "cagr_pct": 681.0258690799097,
+          "total_return_pct": 6026.768490600987,
+          "cagr_pct": 724.048046504878,
           "max_drawdown_pct": -92.18318994521731,
-          "sharpe": 2.2695240661291214,
-          "sortino": 0.5069045831049432,
+          "sharpe": 2.3062695013947407,
+          "sortino": 0.493735439508589,
           "num_trades": 21,
           "win_rate_pct": 90.47619047619048,
           "buy_hold_return_pct": 200.10062012394803,
@@ -118,11 +118,11 @@
           "total_cost_dai": 3070.2068994237243
         },
         "10000": {
-          "total_return_pct": 3707.6219434345253,
-          "cagr_pct": 545.7760056941905,
+          "total_return_pct": 4127.584269405268,
+          "cagr_pct": 581.3480539369646,
           "max_drawdown_pct": -92.18318994521731,
-          "sharpe": 2.1491148336457835,
-          "sortino": 0.47854094247635437,
+          "sharpe": 2.1853382865022226,
+          "sortino": 0.4664243326450129,
           "num_trades": 21,
           "win_rate_pct": 90.47619047619048,
           "buy_hold_return_pct": 200.10062012394803,
@@ -131,13 +131,13 @@
           "total_cost_dai": 9777.27518475162
         },
         "25000": {
-          "total_return_pct": 1316.5393012371478,
-          "cagr_pct": 289.04725624096176,
+          "total_return_pct": 1472.7767503889177,
+          "cagr_pct": 310.4776092514386,
           "max_drawdown_pct": -92.18318994521731,
-          "sharpe": 1.8290716933047055,
-          "sortino": 0.40309948213736324,
+          "sharpe": 1.8637917769407457,
+          "sortino": 0.39373296593251667,
           "num_trades": 21,
-          "win_rate_pct": 85.71428571428571,
+          "win_rate_pct": 90.47619047619048,
           "buy_hold_return_pct": 200.10062012394803,
           "total_cost_pct": 193.12971073317044,
           "avg_cost_per_trade_pct": 9.196652892055734,
@@ -240,46 +240,46 @@
     {
       "name": "DonchianChampionDynamicStrategy",
       "file": "strategies/donchian_champion_strategy.py",
-      "description": "Champion v4 breakout with ATR-based dynamic drawdown stop.",
+      "description": "Champion v5 breakout with ATR-based dynamic DD + gain loosening.",
       "performance_by_trade_size": {
         "5000": {
-          "total_return_pct": 4599.933557187122,
-          "cagr_pct": 619.3556233856385,
-          "max_drawdown_pct": -49.02874761612349,
-          "sharpe": 2.6778920885027246,
-          "sortino": 1.3244438627001878,
-          "num_trades": 34,
-          "win_rate_pct": 52.94117647058824,
-          "buy_hold_return_pct": 200.10062012394803,
-          "total_cost_pct": 99.41622340991107,
-          "avg_cost_per_trade_pct": 2.924006570879737,
-          "total_cost_dai": 4970.811170495554
-        },
-        "10000": {
-          "total_return_pct": 2479.075483461427,
-          "cagr_pct": 428.8986867082672,
-          "max_drawdown_pct": -53.74147173822321,
-          "sharpe": 2.3193986805118083,
-          "sortino": 1.1334950487498245,
-          "num_trades": 34,
+          "total_return_pct": 5434.699106760984,
+          "cagr_pct": 682.2258744299642,
+          "max_drawdown_pct": -49.41274311010954,
+          "sharpe": 2.66854130343812,
+          "sortino": 1.4006836074975206,
+          "num_trades": 32,
           "win_rate_pct": 50.0,
           "buy_hold_return_pct": 200.10062012394803,
-          "total_cost_pct": 158.29874108645478,
+          "total_cost_pct": 93.5682102681516,
+          "avg_cost_per_trade_pct": 2.9240065708797376,
+          "total_cost_dai": 4678.41051340758
+        },
+        "10000": {
+          "total_return_pct": 3046.6152632124194,
+          "cagr_pct": 485.65500045930605,
+          "max_drawdown_pct": -54.089963595499555,
+          "sharpe": 2.3507406688928643,
+          "sortino": 1.2214271128331218,
+          "num_trades": 32,
+          "win_rate_pct": 50.0,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 148.9870504343104,
           "avg_cost_per_trade_pct": 4.6558453260722,
-          "total_cost_dai": 15829.87410864548
+          "total_cost_dai": 14898.70504343104
         },
         "25000": {
-          "total_return_pct": 421.1727361710356,
-          "cagr_pct": 133.0513770919099,
-          "max_drawdown_pct": -64.28000269151977,
-          "sharpe": 1.3829938644450717,
-          "sortino": 0.6366132840513935,
-          "num_trades": 34,
-          "win_rate_pct": 38.23529411764706,
+          "total_return_pct": 598.7764629326158,
+          "cagr_pct": 170.8455249637145,
+          "max_drawdown_pct": -64.54910178895518,
+          "sharpe": 1.5161970793710993,
+          "sortino": 0.7477617119235849,
+          "num_trades": 32,
+          "win_rate_pct": 37.5,
           "buy_hold_return_pct": 200.10062012394803,
-          "total_cost_pct": 312.68619832989503,
-          "avg_cost_per_trade_pct": 9.196652892055736,
-          "total_cost_dai": 78171.54958247376
+          "total_cost_pct": 294.2928925457835,
+          "avg_cost_per_trade_pct": 9.196652892055734,
+          "total_cost_dai": 73573.22313644587
         }
       }
     },
@@ -378,7 +378,7 @@
     {
       "name": "MultiWeekBreakoutStrategy",
       "file": "strategies/multiweek_breakout_strategy.py",
-      "description": "Multi-week breakout with regime + recovery filters and 26% trail; tuned for high net return and flat recent performance.",
+      "description": "Multi-week breakout with regime + recovery filters and 26% trail.",
       "performance_by_trade_size": {
         "5000": {
           "total_return_pct": 1557.8875311850127,

@@ -135,11 +135,13 @@ class DonchianChampionDynamicStrategy(DonchianChampionStrategy):
             'entry_days': 11.0,
             'exit_days': 2.0,
             'ema_exit_days': 3.0,
-            'dd_base': 0.18,
+            'dd_base': 0.16,
             'dd_k': 0.5,
-            'dd_min': 0.12,
-            'dd_max': 0.30,
+            'gain_weight': 0.10,
+            'dd_min': 0.10,
+            'dd_max': 0.45,
             'atr_days': 1.0,
+            'entry_buffer_frac': 0.0,
             'timeframe_minutes': 5,
         }
         if parameters:
@@ -169,11 +171,14 @@ class DonchianChampionDynamicStrategy(DonchianChampionStrategy):
 
         dd_base = float(self.parameters['dd_base'])
         dd_k = float(self.parameters['dd_k'])
+        gain_weight = float(self.parameters.get('gain_weight', 0.0))
         dd_min = float(self.parameters['dd_min'])
         dd_max = float(self.parameters['dd_max'])
+        entry_buffer = float(self.parameters.get('entry_buffer_frac', 0.0))
 
         in_position = False
         peak_price = 0.0
+        entry_price = 0.0
 
         for i in range(len(df)):
             px = price[i]
@@ -185,14 +190,19 @@ class DonchianChampionDynamicStrategy(DonchianChampionStrategy):
                 continue
 
             if not in_position:
-                if px >= hi:
+                if px >= hi * (1.0 + entry_buffer):
                     df.iat[i, df.columns.get_loc('buy_signal')] = True
                     df.iat[i, df.columns.get_loc('signal_strength')] = 1.0
                     in_position = True
                     peak_price = px
+                    entry_price = px
             else:
                 peak_price = max(peak_price, px)
                 dd_dyn = dd_base + dd_k * (atr_ratio[i] if not np.isnan(atr_ratio[i]) else 0.0)
+                if entry_price > 0 and peak_price > entry_price and gain_weight > 0:
+                    gain = (peak_price / entry_price) - 1.0
+                    if gain > 0:
+                        dd_dyn += gain_weight * gain
                 dd_dyn = min(max(dd_dyn, dd_min), dd_max)
                 exit_donchian = (not np.isnan(lo)) and px <= lo and (not np.isnan(ema_val)) and px < ema_val
                 exit_drawdown = peak_price > 0 and px <= peak_price * (1.0 - dd_dyn)
@@ -201,5 +211,6 @@ class DonchianChampionDynamicStrategy(DonchianChampionStrategy):
                     df.iat[i, df.columns.get_loc('signal_strength')] = 1.0
                     in_position = False
                     peak_price = 0.0
+                    entry_price = 0.0
 
         return df

@@ -64,7 +64,7 @@ All results shown by this script include the **full swap cost model** (loss-rate
 python scripts/export_strategy_performance_csv.py
 ```
 
-Generates `strategy_performance_summary.csv` (currently 63 rows) with metrics for **full period**, **last 3 months**, and **last 1 month** for trade sizes 5 k, 10 k, and 25 k DAI. Columns include buy-and-hold baselines, strategy net return, CAGR, max drawdown, Sharpe, Sortino, trades, win rate, total swap cost in % and DAI, and average cost per trade.
+Generates `strategy_performance_summary.csv` (currently 90 rows) with metrics for **full period**, **last 3 months**, and **last 1 month** for trade sizes 5 k, 10 k, and 25 k DAI. Columns include buy-and-hold baselines, strategy net return, CAGR, max drawdown, Sharpe, Sortino, trades, win rate, total swap cost in % and DAI, and average cost per trade.
 
 Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lookup_roundtrip_cost` (the last performs step rounding). They expect the data CSV and swap-cost cache in the default repo locations but accept overrides via arguments.
 
@@ -91,9 +91,9 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 ### 4.4 CSMARevertStrategy (new port)
 - **File:** `strategies/c_sma_revert_strategy.py`
 - **Source inspiration:** `newstrats/strategy_c_sma_revert.py`
-- **Parameters:** `n_sma=576`, `entry_drop=0.25`, `exit_up=0.05`, `rsi_period=14`, `rsi_max=30`.
+- **Parameters:** `n_sma=576`, `entry_drop=0.25`, `exit_up=0.048`, `rsi_period=14`, `rsi_max=30`.
 - **Logic:** When price falls 25 % below the 2-day SMA and RSI≤30, go long; exit when price rebounds 5 % above SMA. No trailing; signals are strictly long-flat.
-- **Performance (5 k DAI):** +5,429.8 % total, 21 trades, max DD −92.2 %, Sharpe 2.27.
+- **Performance (5 k DAI, bucket-based costs):** +6,026.8 % total, 21 trades, max DD −92.2 %, Sharpe 2.31. (Earlier drafts reported ~+5.43 k % before exit tuning; the v2 exit improves net gain.)
 - **Recent windows:** +213.4 % (last 3 months), 0 % (last month; no entry). Demonstrates very fast recovery behaviour with high sensitivity to post-crash rebounds.
 - **Strengths:** Captures deep-dip reversions exceptionally well; only 21 trades over two years (fees manageable compared to gains).
 - **Weaknesses:** Extremely high drawdown tolerance; capital fully deployed in severe sell-offs.
@@ -110,9 +110,9 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
   - Same entry/exit as v1 plus a **20 %** peak-to-trough trailing stop (updated from 25 %).
   - Performance (5 k DAI): +3,668.3 %, Sharpe 2.54, max DD −49.4 %, trades 34.
   - Recent windows: last 3 months −42.4 %, last month −10.8 %; still exposed to downtrend churn but the tighter stop improves full-period profit dramatically.
-- **Champion v4 (DonchianChampionDynamicStrategy):**
-  - Replaces the fixed trailing stop with an **ATR-ratio-driven dynamic drawdown:** `dd_t = clip(dd_base + k × ATR_ratio, dd_min, dd_max)` with defaults `dd_base=0.18`, `k=0.5`, `bounds=[0.12, 0.30]`.
-  - Performance (5 k DAI, bucket-based costs): **+4,599.9 %**, Sharpe 2.68, max DD −49.0 %, trades 34. The full reproduction script (`detailed_v4.md`) that charges costs on actual notional reports +1,674.7 %—both views show the v4 dynamic stop decisively beats earlier versions.
+- **Champion v5 (DonchianChampionDynamicStrategy):**
+  - Replaces the fixed trailing stop with an **ATR-ratio-driven dynamic drawdown with gain loosening:** `dd_t = clip(dd_base + k × ATR_ratio + w × max(0, gain), dd_min, dd_max)` with defaults `dd_base=0.16`, `k=0.5`, `w=0.10`, `bounds=[0.10, 0.45]`.
+  - Performance (5 k DAI, bucket-based costs): **+5,434.7 %**, Sharpe 2.67, max DD −49.4 %, trades 32. The full reproduction script (`detailed_v5.md`) that charges costs on actual notionals reports ~+1,846 %, reinforcing the improvement over prior versions.
   - Recent windows: last 3 months −38.8 %, last month −10.8 %; still subject to whipsaws but overall profit improved even further thanks to adaptive stops.
 - **Strengths:** When trending strongly, both deliver large net gains despite costs. v2 sharply reduces drawdown.
 - **Weaknesses:** Both still trade during downtrends; need additional regime gating to avoid fee bleed.
@@ -157,8 +157,8 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 
 | Strategy | Total Return | Max DD | Trades | Notes |
 |----------|-------------:|-------:|-------:|-------|
-| CSMARevertStrategy | +5,418.1 % | −92.2 % | 21 | Deep-dip mean reversion remains top performer |
-| DonchianChampionDynamicStrategy | +4,599.9 % | −49.0 % | 34 | Champion v4 with ATR-based dynamic DD |
+| CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Deep-dip mean reversion remains top performer |
+| DonchianChampionDynamicStrategy | +5,434.7 % | −49.4 % | 32 | Champion v5 with ATR+gain-based DD |
 | DonchianChampionAggressiveStrategy | +3,668.3 % | −49.4 % | 34 | Champion v3 with DD=20 % |
 | MultiWeekBreakoutStrategy | +1,557.9 % | −60.6 % | 16 | High return, sits out downtrends |
 | HybridV2Strategy | +620.3 % | −95.0 % | 85 | Hybrid mean-revert + breakout combo |
@@ -224,7 +224,7 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
 | Original newstrats blotter | `newstrats/best_11d2d_exitEMA3d_blotter_agent2.csv` |
 | Hybrid research | `newstrats/strategy_hybrid_v2.py`, `newstrats/strategy_iteration_report_V2.md` |
 | v3 blotter & trend follow | `newstrats/best_v3_blotter_dd20.csv`, `newstrats/trend_follow_blotter.csv` |
-| v4 dynamic breakout | `newstrats/detailed_v4.md`, `newstrats/best_v4_blotter_dynDD.csv` |
+| v4/v5 dynamic breakout | `newstrats/detailed_v4.md`, `newstrats/detailed_v5.md`, `newstrats/best_v4_blotter_dynDD.csv` |
 | SMA tuning plots | `newstrats/tuned_sma_rsi_365d_equity_V2.png`, `newstrats/tuned_sma_rsi_730d_equity_V2.png` |
 | Iteration summary notes | `newstrats/detailed_agent2.md`, `newstrats/detailed_v3.md`, `newstrats/detailed_v4.md`, `newstrats/iteration_summary_runs_agent2.csv` |
 
@@ -244,6 +244,6 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
 ## 10. Summary
 
 - All strategies now run through the same cost-aware harness with per-step rounding, gas inclusion, and bucket-aware analytics in the CSV/JSON reports.
-- The repo contains mean-reverting (CSMA, Hybrid V2), breakout (Donchian v1–v4, MultiWeek variants), and trend-following (tight TTF) families, plus baseline holds.
+- The repo contains mean-reverting (CSMA, Hybrid V2), breakout (Donchian v1–v5, MultiWeek variants), and trend-following (tight TTF) families, plus baseline holds.
 - `strategy_performance_summary.csv` provides a 3-period snapshot for three trade sizes, enabling quick health checks.
 - Future work will iterate parameters, add the requested tight trend follower, and keep updating this document with findings and best practices.
