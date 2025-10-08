@@ -35,7 +35,7 @@ class CSMARevertStrategy(BaseStrategy):
             'entry_drop': 0.25,    # 25% below SMA to enter
             'exit_up': 0.048,      # tuned exit overshoot ~=4.8%
             'rsi_period': 14,
-            'rsi_max': 30.0,
+            'rsi_max': 32.0,
             'timeframe_minutes': 5,
         }
         if parameters:
