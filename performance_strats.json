@@ -466,6 +466,52 @@
           "total_cost_dai": 27589.958676167204
         }
       }
+    },
+    {
+      "name": "Codex1CSMAUltraStrategy",
+      "file": "strategies/codex1_csma_ultra_strategy.py",
+      "description": "Ultra-tuned CSMA variant (n_sma=432, entry_drop=24%, exit_up=5.4%, RSI<=30) that now leads the swap-cost-aware returns.",
+      "performance_by_trade_size": {
+        "5000": {
+          "total_return_pct": 6806.372099530795,
+          "cagr_pct": 776.2174793121998,
+          "max_drawdown_pct": -92.18318994521731,
+          "sharpe": 2.349439166102571,
+          "sortino": 0.5087075848699607,
+          "num_trades": 22,
+          "win_rate_pct": 86.36363636363636,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 64.32814455935423,
+          "avg_cost_per_trade_pct": 2.9240065708797376,
+          "total_cost_dai": 3216.4072279677116
+        },
+        "10000": {
+          "total_return_pct": 4578.2506788602905,
+          "cagr_pct": 617.652875908713,
+          "max_drawdown_pct": -92.18318994521731,
+          "sharpe": 2.2216931330782512,
+          "sortino": 0.47946200571153863,
+          "num_trades": 22,
+          "win_rate_pct": 86.36363636363636,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 102.42859717358839,
+          "avg_cost_per_trade_pct": 4.6558453260722,
+          "total_cost_dai": 10242.859717358839
+        },
+        "25000": {
+          "total_return_pct": 1556.7332388148523,
+          "cagr_pct": 321.56495263964393,
+          "max_drawdown_pct": -92.18318994521731,
+          "sharpe": 1.8822583994889257,
+          "sortino": 0.40172731031745584,
+          "num_trades": 22,
+          "win_rate_pct": 81.81818181818183,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 202.32636362522615,
+          "avg_cost_per_trade_pct": 9.196652892055734,
+          "total_cost_dai": 50581.59090630654
+        }
+      }
     }
   ]
 }

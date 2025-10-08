@@ -88,16 +88,20 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 - **Status:** Included in batch tests; both rely on long-horizon EMAs/MAs to determine regime. Current parameters remain the originals; further tuning is pending.
 - **Observation:** Both lag heavily during crashes → negative net returns under swap costs; flagged for future optimisation.
 
-### 4.4 CSMARevertStrategy (new port)
-- **File:** `strategies/c_sma_revert_strategy.py`
-- **Source inspiration:** `newstrats/strategy_c_sma_revert.py`
-- **Parameters:** `n_sma=576`, `entry_drop=0.25`, `exit_up=0.048`, `rsi_period=14`, `rsi_max=30`.
-- **Logic:** When price falls 25 % below the 2-day SMA and RSI≤30, go long; exit when price rebounds 5 % above SMA. No trailing; signals are strictly long-flat.
-- **Performance (5 k DAI, bucket-based costs):** +6,026.8 % total, 21 trades, max DD −92.2 %, Sharpe 2.31. (Earlier drafts reported ~+5.43 k % before exit tuning; the v2 exit improves net gain.)
-- **Recent windows:** +213.4 % (last 3 months), 0 % (last month; no entry). Demonstrates very fast recovery behaviour with high sensitivity to post-crash rebounds.
-- **Strengths:** Captures deep-dip reversions exceptionally well; only 21 trades over two years (fees manageable compared to gains).
-- **Weaknesses:** Extremely high drawdown tolerance; capital fully deployed in severe sell-offs.
-- **Next steps:** Consider optional trailing stops or partial position sizing for risk control.
+### 4.4 CSMA family (reversion core)
+- **Files:**
+  - `strategies/c_sma_revert_strategy.py`
+  - `strategies/codex1_csma_enhanced_strategy.py`
+  - `strategies/codex1_csma_ultra_strategy.py`
+- **Logic:** All three share the classic deep-dip reversion template (buy 24–25 % below the multi-day SMA with an RSI oversold gate, exit on SMA overshoot). The enhanced and ultra variants simply relax/tune the guardrails while keeping execution identical.
+- **Performance (5 k DAI, bucket-based costs):**
+  - CSMARevertStrategy → +6,026.8 %, 21 trades.
+  - Codex1CSMAEnhancedStrategy → +6,282.8 %, 21 trades (RSI≤32).
+  - **Codex1CSMAUltraStrategy → +6,806.4 %, 22 trades (n_sma=432, entry_drop=24 %, exit_up=5.4 %, RSI≤30).**
+- **Recent windows:** Last 3 months still +213 % for CSMARevert; the ultra variant did not add trades in the final month, so recent behaviour is identical.
+- **Strengths:** Captures deep-dip reversions exceptionally well with low turnover (≤22 trades over two years); tuning shows the structure is robust to small parameter shifts.
+- **Weaknesses:** All variants tolerate ~−92 % drawdowns and stay fully invested through crashes.
+- **Next steps:** Explore optional trailing stops or partial position sizing overlays to trim drawdown while preserving the improved net return.
 
 ### 4.5 DonchianChampion strategies (v1–v4)
 - **File:** `strategies/donchian_champion_strategy.py`
@@ -157,7 +161,9 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 
 | Strategy | Total Return | Max DD | Trades | Notes |
 |----------|-------------:|-------:|-------:|-------|
-| CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Deep-dip mean reversion remains top performer |
+| **Codex1CSMAUltraStrategy** | **+6,806.4 %** | −92.2 % | 22 | New record; 432-bar SMA with 24 % drop and 5.4 % exit buffer |
+| Codex1CSMAEnhancedStrategy | +6,282.8 % | −92.2 % | 21 | RSI≤32 tweak captures extra rebounds without extra trades |
+| CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Baseline deep-dip mean reversion |
 | DonchianChampionDynamicStrategy | +5,434.7 % | −49.4 % | 32 | Champion v5 with ATR+gain-based DD |
 | DonchianChampionAggressiveStrategy | +3,668.3 % | −49.4 % | 34 | Champion v3 with DD=20 % |
 | MultiWeekBreakoutStrategy | +1,557.9 % | −60.6 % | 16 | High return, sits out downtrends |
@@ -169,7 +175,7 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 | PassiveHoldStrategy | +195.7 % | −99.7 % | 1 | Baseline |
 
 ### 5.2 Recent periods (trade size 5 k DAI)
-- **Last 3 months:** CSMARevertStrategy posted +213 %; MultiWeekBreakout stayed flat (0 trades); Donchian variants lost ~−42 % after multiple stop-outs; tight trend follower dipped −4 %.
+- **Last 3 months:** CSMARevertStrategy posted +213 % (the enhanced/ultra variants share the same recent trades); MultiWeekBreakout stayed flat (0 trades); Donchian variants lost ~−42 % after multiple stop-outs; tight trend follower dipped −4 %.
 - **Last 1 month:** Most systematic strategies, including the tight trend follower and breakout, stayed flat (no trades). Donchian variants logged minor losses (~−10 %); CSMA had no entry.
 - **Interpretation:** The new gating in MultiWeekBreakout eliminates fee leakage during downtrends. Donchian variants need similar gating or regime filters to avoid repeated whipsaws. CSMA excels in volatile recoveries but remains fully exposed during the deepest part of a crash.
 

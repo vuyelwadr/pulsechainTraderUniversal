@@ -1,4 +1,6 @@
-[
+[ 
+  "Codex1CSMAUltraStrategy",
+  "Codex1CSMAEnhancedStrategy",
   "CSMARevertStrategy",
   "DonchianChampionDynamicStrategy",
   "DonchianChampionAggressiveStrategy",
