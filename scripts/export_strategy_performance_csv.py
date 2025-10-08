@@ -28,6 +28,9 @@ from strategies.trailing_hold_strategy import TrailingHoldStrategy
 from strategies.multiweek_breakout_strategy import MultiWeekBreakoutStrategy
 from strategies.multiweek_breakout_ultra_strategy import MultiWeekBreakoutUltraStrategy
 from strategies.c_sma_revert_strategy import CSMARevertStrategy
+from strategies.codex1_csma_enhanced_strategy import Codex1CSMAEnhancedStrategy
+from strategies.codex1_csma_apex_strategy import Codex1CSMAApexStrategy
+from strategies.codex1_csma_galaxy_strategy import Codex1CSMAGalaxyStrategy
 from strategies.donchian_champion_strategy import (
     DonchianChampionStrategy,
     DonchianChampionAggressiveStrategy,
@@ -66,6 +69,24 @@ STRATEGIES: List[StrategyDef] = [
         'strategies/c_sma_revert_strategy.py',
         'SMA reversion with RSI filter; enters deep dips and exits on mean reversion.',
         CSMARevertStrategy,
+    ),
+    StrategyDef(
+        'Codex1CSMAEnhancedStrategy',
+        'strategies/codex1_csma_enhanced_strategy.py',
+        'Enhanced CSMA variant with RSI<=32 threshold to capture more crash rebounds.',
+        Codex1CSMAEnhancedStrategy,
+    ),
+    StrategyDef(
+        'Codex1CSMAApexStrategy',
+        'strategies/codex1_csma_apex_strategy.py',
+        'Apex CSMA: adds a rolling-high drawdown filter to avoid shallow pullback churn.',
+        Codex1CSMAApexStrategy,
+    ),
+    StrategyDef(
+        'Codex1CSMAGalaxyStrategy',
+        'strategies/codex1_csma_galaxy_strategy.py',
+        'Galaxy CSMA: deep capitulation entries with ultra-long trailing exit to harvest full crash recoveries.',
+        Codex1CSMAGalaxyStrategy,
     ),
     StrategyDef(
         'DonchianChampionStrategy',

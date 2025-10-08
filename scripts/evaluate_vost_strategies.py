@@ -26,6 +26,12 @@ from strategies.passive_hold_strategy import PassiveHoldStrategy
 from strategies.macro_trend_channel_strategy import MacroTrendChannelStrategy
 from strategies.trailing_hold_strategy import TrailingHoldStrategy
 from strategies.c_sma_revert_strategy import CSMARevertStrategy
+from strategies.codex1_csma_turbo_strategy import Codex1CSMATurboStrategy
+from strategies.codex1_csma_enhanced_strategy import Codex1CSMAEnhancedStrategy
+from strategies.codex1_csma_apex_strategy import Codex1CSMAApexStrategy
+from strategies.codex1_csma_galaxy_strategy import Codex1CSMAGalaxyStrategy
+from strategies.codex1_phoenix_strategy import Codex1PhoenixStrategy
+from strategies.codex1_recovery_trend_strategy import Codex1RecoveryTrendStrategy
 from strategies.donchian_champion_strategy import (
     DonchianChampionStrategy,
     DonchianChampionAggressiveStrategy,
@@ -243,6 +249,12 @@ def main() -> None:
         ('DonchianChampion', DonchianChampionStrategy()),
         ('DonchianChampionAggressive', DonchianChampionAggressiveStrategy()),
         ('DonchianChampionDynamic', DonchianChampionDynamicStrategy()),
+        ('Codex1CSMATurbo', Codex1CSMATurboStrategy()),
+        ('Codex1CSMAEnhanced', Codex1CSMAEnhancedStrategy()),
+        ('Codex1CSMAApex', Codex1CSMAApexStrategy()),
+        ('Codex1CSMAGalaxy', Codex1CSMAGalaxyStrategy()),
+        ('Codex1Phoenix', Codex1PhoenixStrategy()),
+        ('Codex1RecoveryTrend', Codex1RecoveryTrendStrategy()),
         ('HybridV2', HybridV2Strategy()),
         ('TightTrendFollow', TightTrendFollowStrategy()),
         ('MultiWeekBreakout', MultiWeekBreakoutStrategy()),

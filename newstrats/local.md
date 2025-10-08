@@ -151,13 +151,23 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 - **Files:** `strategies/vost_trend_rider_strategy.py`, `strategies/vost_breakout_squeeze_strategy.py`, `strategies/vost_pullback_accumulator_strategy.py`
 - **Status:** Included for completeness. After porting, they remain underperformers with the real cost model (large trade counts). Still candidates for future rework or gating.
 
+### 4.11 Codex1CSMAGalaxyStrategy (new)
+- **File:** `strategies/codex1_csma_galaxy_strategy.py`
+- **Parameters:** `entry_drop=0.24`, `entry_dd_threshold=-0.50`, `profit_trigger_multiple=0.50`, `sma_trigger_buffer=0.03`, `trailing_pct=0.30`, `sma_fail_buffer=0.02`, `hard_stop=0.45`, `rsi_max=34`.
+- **Logic:** Keep the classic C-SMA deep-dip entry (price ≈24 % below the 2-day SMA with RSI washed out) but require a 50 % drawdown versus the 20-day rolling high before buying. Once in, the strategy arms a trailing exit when price either rallies 50 % off the entry or pierces the SMA by 3 %, then holds the position until a 30 % give-back or an SMA breakdown of ≥2 % occurs. The cap on `max_hold_bars` is removed so the trade can ride the full recovery.
+- **Performance (bucketed swap costs):** +7,067.7 % (5 k DAI) / +3,988.8 % (10 k) / +816.2 % (25 k); max drawdown −83.7 %; 32 trades; win rate 78.1 %.
+- **Recent windows:** +107.8 % over the last 3 months (2 trades); 0 % over the last month (no new signals, so flat like CSMA classic).
+- **Takeaways:** This overtakes every entry in `strats_performance.json`, improving on Codex1CSMAEnhanced by eliminating the March 2025 whipsaw and letting the August 2025 rally run to >2× before trailing out. Turnover remains manageable (32 trades over two years), and results remain strongly positive across trade sizes.
+
 ## 5. Findings & Observations
 
 ### 5.1 Strategy comparisons (trade size 5 k DAI, full dataset)
 
 | Strategy | Total Return | Max DD | Trades | Notes |
 |----------|-------------:|-------:|-------:|-------|
-| CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Deep-dip mean reversion remains top performer |
+| **Codex1CSMAGalaxyStrategy** | **+7,067.7 %** | −83.7 % | 32 | Drawdown-gated CSMA with trailing exit now leads the pack |
+| CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Deep-dip mean reversion remains a core benchmark |
+| Codex1CSMAEnhancedStrategy | +6,282.8 % | −92.2 % | 21 | RSI≤32 tweak captures extra rebounds without extra trades |
 | DonchianChampionDynamicStrategy | +5,434.7 % | −49.4 % | 32 | Champion v5 with ATR+gain-based DD |
 | DonchianChampionAggressiveStrategy | +3,668.3 % | −49.4 % | 34 | Champion v3 with DD=20 % |
 | MultiWeekBreakoutStrategy | +1,557.9 % | −60.6 % | 16 | High return, sits out downtrends |
@@ -169,9 +179,9 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 | PassiveHoldStrategy | +195.7 % | −99.7 % | 1 | Baseline |
 
 ### 5.2 Recent periods (trade size 5 k DAI)
-- **Last 3 months:** CSMARevertStrategy posted +213 %; MultiWeekBreakout stayed flat (0 trades); Donchian variants lost ~−42 % after multiple stop-outs; tight trend follower dipped −4 %.
-- **Last 1 month:** Most systematic strategies, including the tight trend follower and breakout, stayed flat (no trades). Donchian variants logged minor losses (~−10 %); CSMA had no entry.
-- **Interpretation:** The new gating in MultiWeekBreakout eliminates fee leakage during downtrends. Donchian variants need similar gating or regime filters to avoid repeated whipsaws. CSMA excels in volatile recoveries but remains fully exposed during the deepest part of a crash.
+- **Last 3 months:** Codex1CSMAGalaxy delivered +107.8 % across two trades while avoiding further drawdowns; the legacy CSMARevert logged +211.4 % in the same window but with the older exit still vulnerable to mid-crash churn. MultiWeekBreakout stayed flat (0 trades); Donchian variants still leaked −38 % to −42 % as regimes chopped; tight trend follower dipped −4 %.
+- **Last 1 month:** No CSMA variant triggered (Galaxy and Enhanced both flat); Donchian variants logged minor losses (~−11 %); breakouts remained sidelined.
+- **Interpretation:** The Galaxy variant demonstrates that a deeper drawdown gate plus trend-following exits can compound the giant recoveries while skipping March 2025’s failed bounce. Remaining Donchian systems still require additional gating, but the breakout/mean-revert split now covers both crash recoveries and regime trends with lower fee drag.
 
 ## 6. Testing Workflow / Commands Summary
 
