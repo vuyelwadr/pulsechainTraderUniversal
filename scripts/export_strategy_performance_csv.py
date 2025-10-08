@@ -33,6 +33,9 @@ from strategies.donchian_champion_strategy import (
     DonchianChampionAggressiveStrategy,
     DonchianChampionDynamicStrategy,
 )
+from strategies.donchian_champion_regime_codex1_strategy import (
+    DonchianChampionRegimeCodex1Strategy,
+)
 from strategies.tight_trend_follow_strategy import TightTrendFollowStrategy
 from strategies.hybrid_v2_strategy import HybridV2Strategy
 
@@ -84,6 +87,12 @@ STRATEGIES: List[StrategyDef] = [
         'strategies/donchian_champion_strategy.py',
         'Champion v4 breakout with ATR-based dynamic drawdown stop.',
         DonchianChampionDynamicStrategy,
+    ),
+    StrategyDef(
+        'DonchianChampionRegimeCodex1Strategy',
+        'strategies/donchian_champion_regime_codex1_strategy.py',
+        'Codex1 variant: regime-gated Donchian breakout with cooldown & macro filters.',
+        DonchianChampionRegimeCodex1Strategy,
     ),
     StrategyDef(
         'TightTrendFollowStrategy',
@@ -229,7 +238,9 @@ def compute_buy_hold_metrics(close: pd.Series) -> Dict[str, float]:
 def main() -> None:
     output_path = Path('strategy_performance_summary.csv')
     data = load_dataset(Path('data/pdai_ohlcv_dai_730day_5m.csv'))
-    swap_costs = load_swap_costs(Path('reports/optimizer_top_top_strats_run/swap_cost_cache.json'))
+    default_swap_cost = Path('reports/optimizer_top_top_strats_run/swap_cost_cache.json')
+    swap_cost_path = default_swap_cost if default_swap_cost.exists() else Path('swap_cost_cache.json')
+    swap_costs = load_swap_costs(swap_cost_path)
     trade_sizes = [5000, 10000, 25000]
 
     period_end = data['timestamp'].max()

@@ -31,6 +31,9 @@ from strategies.donchian_champion_strategy import (
     DonchianChampionAggressiveStrategy,
     DonchianChampionDynamicStrategy,
 )
+from strategies.donchian_champion_regime_codex1_strategy import (
+    DonchianChampionRegimeCodex1Strategy,
+)
 from strategies.tight_trend_follow_strategy import TightTrendFollowStrategy
 from strategies.hybrid_v2_strategy import HybridV2Strategy
 
@@ -232,7 +235,12 @@ def main() -> None:
     args = parser.parse_args()
 
     data = load_dataset(args.data)
-    swap_costs = load_swap_costs(args.swap_cost_cache)
+    swap_cost_path = args.swap_cost_cache
+    if not swap_cost_path.exists():
+        fallback = Path('swap_cost_cache.json')
+        if fallback.exists():
+            swap_cost_path = fallback
+    swap_costs = load_swap_costs(swap_cost_path)
 
     strategies = [
         ('PassiveHold', PassiveHoldStrategy()),
@@ -243,6 +251,10 @@ def main() -> None:
         ('DonchianChampion', DonchianChampionStrategy()),
         ('DonchianChampionAggressive', DonchianChampionAggressiveStrategy()),
         ('DonchianChampionDynamic', DonchianChampionDynamicStrategy()),
+        (
+            'DonchianChampionRegimeCodex1',
+            DonchianChampionRegimeCodex1Strategy(),
+        ),
         ('HybridV2', HybridV2Strategy()),
         ('TightTrendFollow', TightTrendFollowStrategy()),
         ('MultiWeekBreakout', MultiWeekBreakoutStrategy()),
