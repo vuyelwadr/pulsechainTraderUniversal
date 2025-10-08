@@ -26,10 +26,14 @@ from strategies.passive_hold_strategy import PassiveHoldStrategy
 from strategies.macro_trend_channel_strategy import MacroTrendChannelStrategy
 from strategies.trailing_hold_strategy import TrailingHoldStrategy
 from strategies.c_sma_revert_strategy import CSMARevertStrategy
+from strategies.csma_revert_dynamic_codex1_strategy import (
+    CSMARevertDynamicCodex1Strategy,
+)
 from strategies.donchian_champion_strategy import (
     DonchianChampionStrategy,
     DonchianChampionAggressiveStrategy,
     DonchianChampionDynamicStrategy,
+    DonchianChampionSupremeCodex1Strategy,
 )
 from strategies.tight_trend_follow_strategy import TightTrendFollowStrategy
 from strategies.hybrid_v2_strategy import HybridV2Strategy
@@ -240,9 +244,11 @@ def main() -> None:
         ('LongTermRegime', LongTermRegimeStrategy()),
         ('MacroTrendChannel', MacroTrendChannelStrategy()),
         ('CSMARevert', CSMARevertStrategy()),
+        ('CSMARevertDynamicCodex1', CSMARevertDynamicCodex1Strategy()),
         ('DonchianChampion', DonchianChampionStrategy()),
         ('DonchianChampionAggressive', DonchianChampionAggressiveStrategy()),
         ('DonchianChampionDynamic', DonchianChampionDynamicStrategy()),
+        ('DonchianChampionSupremeCodex1', DonchianChampionSupremeCodex1Strategy()),
         ('HybridV2', HybridV2Strategy()),
         ('TightTrendFollow', TightTrendFollowStrategy()),
         ('MultiWeekBreakout', MultiWeekBreakoutStrategy()),

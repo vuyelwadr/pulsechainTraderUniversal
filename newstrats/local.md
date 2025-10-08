@@ -151,6 +151,28 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 - **Files:** `strategies/vost_trend_rider_strategy.py`, `strategies/vost_breakout_squeeze_strategy.py`, `strategies/vost_pullback_accumulator_strategy.py`
 - **Status:** Included for completeness. After porting, they remain underperformers with the real cost model (large trade counts). Still candidates for future rework or gating.
 
+### 4.11 CSMARevertDynamicCodex1Strategy (new)
+- **File:** `strategies/csma_revert_dynamic_codex1_strategy.py`
+- **Design:** Keeps the deep-dip entry (`price ≤ SMA(576) × (1−24 %)` & `RSI≤32`) but layers adaptive exits:
+  - Arm an 18 % trailing stop once gains exceed 35 % from entry.
+  - Exit early when price tags SMA+6 % and momentum (EMA(288) slope) stalls.
+  - Panic-stop at −48 % if a capitulation leg continues.
+  - Require `ATR_ratio ≥ 0.10` to focus on high-volatility reversals.
+- **Performance (bucketed costs):**
+  - 5 k DAI: +1,023.7 % total, max DD −68.4 %, 7 trades.
+  - 10 k DAI: +897.0 %, max DD −69.8 %, 7 trades.
+  - 25 k DAI: +624.9 %, max DD −73.2 %, 7 trades.
+- **Takeaway:** Sacrifices some raw upside versus classic CSMA (+6,026 %) but cuts drawdown by ~24 pp while keeping trade count tiny. Suitable as a lower-volatility complement when combining strategies.
+
+### 4.12 DonchianChampionSupremeCodex1Strategy (new)
+- **File:** Added to `strategies/donchian_champion_strategy.py` as a codex1-specific preset.
+- **Parameters:** `dd_base=0.14`, `dd_k=0.40`, `gain_weight=0.12`, `dd_min=0.08`, `dd_max=0.45`, `entry_buffer=0`. Keeps the 11-day breakout / 2-day exit template but tightens the adaptive drawdown to lock in gains sooner while still loosening after large run-ups.
+- **Performance (bucketed costs):**
+  - 5 k DAI: **+7,231.8 %**, Sharpe 2.84, max DD −47.0 %, 32 trades.
+  - 10 k DAI: +4,068.3 %, Sharpe 2.51, max DD −51.9 %, 32 trades.
+  - 25 k DAI: +825.7 %, Sharpe 1.67, max DD −62.8 %, 32 trades.
+- **Comparison:** Outperforms the prior best (DonchianChampionDynamic at +5,434.7 % for 5 k) while trimming drawdown by ~2.5 pp. At larger notionals it still beats the aggressive/dynamic presets thanks to lower fee leakage.
+
 ## 5. Findings & Observations
 
 ### 5.1 Strategy comparisons (trade size 5 k DAI, full dataset)
@@ -158,9 +180,11 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 | Strategy | Total Return | Max DD | Trades | Notes |
 |----------|-------------:|-------:|-------:|-------|
 | CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Deep-dip mean reversion remains top performer |
+| DonchianChampionSupremeCodex1Strategy | **+7,231.8 %** | −47.0 % | 32 | New codex1 preset with tightened base DD |
 | DonchianChampionDynamicStrategy | +5,434.7 % | −49.4 % | 32 | Champion v5 with ATR+gain-based DD |
 | DonchianChampionAggressiveStrategy | +3,668.3 % | −49.4 % | 34 | Champion v3 with DD=20 % |
 | MultiWeekBreakoutStrategy | +1,557.9 % | −60.6 % | 16 | High return, sits out downtrends |
+| CSMARevertDynamicCodex1Strategy | +1,023.7 % | −68.4 % | 7 | Adaptive CSMA variant with lower DD |
 | HybridV2Strategy | +620.3 % | −95.0 % | 85 | Hybrid mean-revert + breakout combo |
 | DonchianChampionStrategy | +587.9 % | −88.0 % | 31 | Good trend capture but high drawdown |
 | TightTrendFollowStrategy | +320.1 % | −47.9 % | 61 | New trend follower ties trades to regime |
@@ -169,9 +193,9 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 | PassiveHoldStrategy | +195.7 % | −99.7 % | 1 | Baseline |
 
 ### 5.2 Recent periods (trade size 5 k DAI)
-- **Last 3 months:** CSMARevertStrategy posted +213 %; MultiWeekBreakout stayed flat (0 trades); Donchian variants lost ~−42 % after multiple stop-outs; tight trend follower dipped −4 %.
-- **Last 1 month:** Most systematic strategies, including the tight trend follower and breakout, stayed flat (no trades). Donchian variants logged minor losses (~−10 %); CSMA had no entry.
-- **Interpretation:** The new gating in MultiWeekBreakout eliminates fee leakage during downtrends. Donchian variants need similar gating or regime filters to avoid repeated whipsaws. CSMA excels in volatile recoveries but remains fully exposed during the deepest part of a crash.
+- **Last 3 months:** CSMARevertStrategy posted +213 %; MultiWeekBreakout stayed flat (0 trades); original Donchian variants lost ~−42 % after multiple stop-outs; **DonchianChampionSupremeCodex1** contained the bleed to roughly −32 %; tight trend follower dipped −4 %.
+- **Last 1 month:** Most systematic strategies, including the tight trend follower and breakout, stayed flat (no trades). Donchian variants logged minor losses (~−10 %); CSMA had no entry. CSMARevertDynamicCodex1 also stayed flat (no new crash trigger).
+- **Interpretation:** The codex1 Donchian preset reduces whipsaw leakage without giving up upside, while the adaptive CSMA variant offers a smoother equity curve to pair with the high-octane original.
 
 ## 6. Testing Workflow / Commands Summary
 

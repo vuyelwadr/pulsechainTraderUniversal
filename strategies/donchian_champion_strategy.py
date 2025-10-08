@@ -214,3 +214,25 @@ class DonchianChampionDynamicStrategy(DonchianChampionStrategy):
                     entry_price = 0.0
 
         return df
+
+
+class DonchianChampionSupremeCodex1Strategy(DonchianChampionDynamicStrategy):
+    """Codex1-tuned Donchian dynamic variant with higher net return."""
+
+    def __init__(self, parameters: Dict | None = None):
+        defaults = {
+            'entry_days': 11.0,
+            'exit_days': 2.0,
+            'ema_exit_days': 3.0,
+            'dd_base': 0.14,
+            'dd_k': 0.40,
+            'gain_weight': 0.12,
+            'dd_min': 0.08,
+            'dd_max': 0.45,
+            'atr_days': 1.0,
+            'entry_buffer_frac': 0.0,
+            'timeframe_minutes': 5,
+        }
+        if parameters:
+            defaults.update(parameters)
+        super().__init__(defaults)
