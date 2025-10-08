@@ -146,6 +146,52 @@
       }
     },
     {
+      "name": "CSMARevertPro1Strategy",
+      "file": "strategies/c_sma_revert_pro1_strategy.py",
+      "description": "Crash-gated SMA reversion with ATR+cooldown for high-cost buckets.",
+      "performance_by_trade_size": {
+        "5000": {
+          "total_return_pct": 297.7243859613144,
+          "cagr_pct": 102.90123101978858,
+          "max_drawdown_pct": -92.18318994521731,
+          "sharpe": 1.4236639078945736,
+          "sortino": 0.11018847983231049,
+          "num_trades": 4,
+          "win_rate_pct": 100.0,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 11.69602628351895,
+          "avg_cost_per_trade_pct": 2.9240065708797376,
+          "total_cost_dai": 584.8013141759475
+        },
+        "10000": {
+          "total_return_pct": 271.3469926580177,
+          "cagr_pct": 95.88945528569764,
+          "max_drawdown_pct": -92.18318994521731,
+          "sharpe": 1.3941808590358322,
+          "sortino": 0.1077170489936359,
+          "num_trades": 4,
+          "win_rate_pct": 100.0,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 18.6233813042888,
+          "avg_cost_per_trade_pct": 4.6558453260722,
+          "total_cost_dai": 1862.33813042888
+        },
+        "25000": {
+          "total_return_pct": 209.30485787203693,
+          "cagr_pct": 78.37016684378622,
+          "max_drawdown_pct": -92.18318994521731,
+          "sharpe": 1.3153100713247456,
+          "sortino": 0.10108529375835573,
+          "num_trades": 4,
+          "win_rate_pct": 100.0,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 36.78661156822294,
+          "avg_cost_per_trade_pct": 9.196652892055734,
+          "total_cost_dai": 9196.652892055734
+        }
+      }
+    },
+    {
       "name": "DonchianChampionStrategy",
       "file": "strategies/donchian_champion_strategy.py",
       "description": "Donchian 11/2 breakout with EMA-confirmed exits (Champion v1).",

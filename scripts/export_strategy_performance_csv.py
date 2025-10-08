@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import argparse
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Type
@@ -28,6 +29,7 @@ from strategies.trailing_hold_strategy import TrailingHoldStrategy
 from strategies.multiweek_breakout_strategy import MultiWeekBreakoutStrategy
 from strategies.multiweek_breakout_ultra_strategy import MultiWeekBreakoutUltraStrategy
 from strategies.c_sma_revert_strategy import CSMARevertStrategy
+from strategies.c_sma_revert_pro1_strategy import CSMARevertPro1Strategy
 from strategies.donchian_champion_strategy import (
     DonchianChampionStrategy,
     DonchianChampionAggressiveStrategy,
@@ -66,6 +68,12 @@ STRATEGIES: List[StrategyDef] = [
         'strategies/c_sma_revert_strategy.py',
         'SMA reversion with RSI filter; enters deep dips and exits on mean reversion.',
         CSMARevertStrategy,
+    ),
+    StrategyDef(
+        'CSMARevertPro1Strategy',
+        'strategies/c_sma_revert_pro1_strategy.py',
+        'Crash-gated SMA reversion with ATR+cooldown for high-cost buckets.',
+        CSMARevertPro1Strategy,
     ),
     StrategyDef(
         'DonchianChampionStrategy',
@@ -227,9 +235,15 @@ def compute_buy_hold_metrics(close: pd.Series) -> Dict[str, float]:
 
 
 def main() -> None:
-    output_path = Path('strategy_performance_summary.csv')
-    data = load_dataset(Path('data/pdai_ohlcv_dai_730day_5m.csv'))
-    swap_costs = load_swap_costs(Path('reports/optimizer_top_top_strats_run/swap_cost_cache.json'))
+    parser = argparse.ArgumentParser(description='Export cost-aware performance CSV for key strategies.')
+    parser.add_argument('--data', type=Path, default=Path('data/pdai_ohlcv_dai_730day_5m.csv'), help='OHLC dataset path.')
+    parser.add_argument('--swap-cost-cache', type=Path, default=Path('reports/optimizer_top_top_strats_run/swap_cost_cache.json'), help='Swap-cost cache JSON path.')
+    parser.add_argument('--output', type=Path, default=Path('strategy_performance_summary.csv'), help='Destination CSV.')
+    args = parser.parse_args()
+
+    output_path = args.output
+    data = load_dataset(args.data)
+    swap_costs = load_swap_costs(args.swap_cost_cache)
     trade_sizes = [5000, 10000, 25000]
 
     period_end = data['timestamp'].max()

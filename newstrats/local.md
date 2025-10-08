@@ -64,7 +64,7 @@ All results shown by this script include the **full swap cost model** (loss-rate
 python scripts/export_strategy_performance_csv.py
 ```
 
-Generates `strategy_performance_summary.csv` (currently 90 rows) with metrics for **full period**, **last 3 months**, and **last 1 month** for trade sizes 5 k, 10 k, and 25 k DAI. Columns include buy-and-hold baselines, strategy net return, CAGR, max drawdown, Sharpe, Sortino, trades, win rate, total swap cost in % and DAI, and average cost per trade.
+Generates `strategy_performance_summary.csv` (currently 90 rows) with metrics for **full period**, **last 3 months**, and **last 1 month** for trade sizes 5 k, 10 k, and 25 k DAI. Columns include buy-and-hold baselines, strategy net return, CAGR, max drawdown, Sharpe, Sortino, trades, win rate, total swap cost in % and DAI, and average cost per trade. CLI accepts `--data`, `--swap-cost-cache`, and `--output` to run ad hoc exports.
 
 Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lookup_roundtrip_cost` (the last performs step rounding). They expect the data CSV and swap-cost cache in the default repo locations but accept overrides via arguments.
 
@@ -98,6 +98,12 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 - **Strengths:** Captures deep-dip reversions exceptionally well; only 21 trades over two years (fees manageable compared to gains).
 - **Weaknesses:** Extremely high drawdown tolerance; capital fully deployed in severe sell-offs.
 - **Next steps:** Consider optional trailing stops or partial position sizing for risk control.
+
+### 4.4b CSMARevertPro1Strategy (codex bundle)
+- **File:** `strategies/c_sma_revert_pro1_strategy.py`
+- **Parameters:** `n_sma=576`, `entry_drop=0.30`, `exit_up=0.07`, `rsi_period=21`, `rsi_max=35`, `rsi_exit=65`, `trail_pct=0.20`, `cooldown_bars=1440`, `min_hold_bars=288`, plus ATR/drawdown gating.
+- **Logic:** Engage only during deep crashes (≥65 % drawdown, ATR/price ≥1.5 %), hold until SMA rebound or RSI relief, and enforce long cooldowns. Reduces trade count from 21 to ~4, improving scalability for 10–25 k buckets.
+- **Performance (bucket view):** +298 % (5 k), +271 % (10 k), +209 % (25 k); kept out of the default runner but useful when fee budget favours ultra-low churn.
 
 ### 4.5 DonchianChampion strategies (v1–v4)
 - **File:** `strategies/donchian_champion_strategy.py`
@@ -231,7 +237,7 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
 | Performance JSON | `performance_strats.json` |
 | Summary CSV | `strategy_performance_summary.csv` |
 | Original newstrats blotter | `newstrats/best_11d2d_exitEMA3d_blotter_agent2.csv` |
-| Hybrid research | `newstrats/strategy_hybrid_v2.py`, `newstrats/strategy_iteration_report_V2.md` |
+| Hybrid research | `newstrats/strategy_hybrid_v2.py`, `newstrats/strategy_iteration_report_V2.md`, `newstrats/codex/pro1/pro1.md` |
 | v3 blotter & trend follow | `newstrats/best_v3_blotter_dd20.csv`, `newstrats/trend_follow_blotter.csv` |
 | v4/v5 dynamic breakout | `newstrats/detailed_v4.md`, `newstrats/detailed_v5.md`, `newstrats/best_v4_blotter_dynDD.csv` |
 | SMA tuning plots | `newstrats/tuned_sma_rsi_365d_equity_V2.png`, `newstrats/tuned_sma_rsi_730d_equity_V2.png` |
