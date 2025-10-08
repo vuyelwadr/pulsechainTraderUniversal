@@ -1,0 +1,165 @@
+{
+  "next_trial_id": 401,
+  "completed": 400,
+  "total_requests": 400,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 1126.9127191226016,
+      "trial_id": 11,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 6,
+        "roc_period": 10,
+        "tsi_long": 25,
+        "tsi_short": 20,
+        "signal_threshold": 0.7
+      }
+    },
+    "profit_biased": {
+      "score": 0.8387934994303274,
+      "trial_id": 212,
+      "strategy": "GridTradingStrategyV2Pro2",
+      "parameters": {
+        "base_step_pct": 1.7506472828318778,
+        "price_range_pct": 29.774390744496674,
+        "num_grids_min": 12,
+        "num_grids_max": 25,
+        "atr_period": 21,
+        "atr_mult_step": 0.8670914344211778,
+        "atr_mult_range": 8.323562331152218,
+        "vol_floor": 0.009233332188645273,
+        "vol_ceil": 0.09922411980790793,
+        "anchor_tf_minutes": 480,
+        "ema_fast": 9,
+        "ema_slow": 69,
+        "trend_slope_thresh": 0.001389910478389077,
+        "allow_with_trend_sells": true,
+        "skew_down": 0.08842637274435101,
+        "skew_up": 0.1093221514207321,
+        "z_atr_recenter": 1.4298042930526957,
+        "rebalance_threshold_pct": 3.537636032668595,
+        "cooldown_bars": 5,
+        "fee_bps": 35.22678605977069,
+        "min_edge_bps": 117.38709286559364,
+        "max_position_levels": 6,
+        "min_strength": 0.5500222620506046
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.8387934994303274,
+      "trial_id": 212,
+      "strategy": "GridTradingStrategyV2Pro2",
+      "parameters": {
+        "base_step_pct": 1.7506472828318778,
+        "price_range_pct": 29.774390744496674,
+        "num_grids_min": 12,
+        "num_grids_max": 25,
+        "atr_period": 21,
+        "atr_mult_step": 0.8670914344211778,
+        "atr_mult_range": 8.323562331152218,
+        "vol_floor": 0.009233332188645273,
+        "vol_ceil": 0.09922411980790793,
+        "anchor_tf_minutes": 480,
+        "ema_fast": 9,
+        "ema_slow": 69,
+        "trend_slope_thresh": 0.001389910478389077,
+        "allow_with_trend_sells": true,
+        "skew_down": 0.08842637274435101,
+        "skew_up": 0.1093221514207321,
+        "z_atr_recenter": 1.4298042930526957,
+        "rebalance_threshold_pct": 3.537636032668595,
+        "cooldown_bars": 5,
+        "fee_bps": 35.22678605977069,
+        "min_edge_bps": 117.38709286559364,
+        "max_position_levels": 6,
+        "min_strength": 0.5500222620506046
+      }
+    },
+    "mar": {
+      "score": 126912719.1226016,
+      "trial_id": 11,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 6,
+        "roc_period": 10,
+        "tsi_long": 25,
+        "tsi_short": 20,
+        "signal_threshold": 0.7
+      }
+    },
+    "utility": {
+      "score": 0.06306261460945721,
+      "trial_id": 348,
+      "strategy": "TMCCCBCIHybridStrategy",
+      "parameters": {
+        "ema_len": 34,
+        "atr_len": 14,
+        "mul": 0.881763276968645,
+        "rsi_period": 37,
+        "cb_low": 30,
+        "cb_high": 63,
+        "signal_threshold": true,
+        "timeframe_minutes": 60
+      }
+    },
+    "cps": {
+      "score": 90.5,
+      "trial_id": 27,
+      "strategy": "GridTradingStrategyV2",
+      "parameters": {
+        "min_step_pct": 0.028164109414591458,
+        "atr_mult": 1.0,
+        "num_grids": 17,
+        "trend_ema_fast": 29,
+        "trend_ema_slow": 200,
+        "sell_spacing_mult_bull": 1.3,
+        "buy_spacing_mult_bear": 1.582530789530095,
+        "recenter_threshold_pct": 0.19365865402116839,
+        "recenter_dwell_bars": 6,
+        "center_lookback": 37,
+        "cooldown_bars": 2,
+        "min_strength": 0.4550422286213689,
+        "side_when_bear": 0,
+        "min_edge_pct": 0.015832230622219237,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.011817597065330062,
+        "tol_buy_hi": 0.005488652745667225,
+        "tol_sell_lo": 0.014987344525714666,
+        "tol_sell_hi": 0.008107614136360637,
+        "timeframe_minutes": 60
+      }
+    },
+    "cps_v2": {
+      "score": 0.8387934994303274,
+      "trial_id": 212,
+      "strategy": "GridTradingStrategyV2Pro2",
+      "parameters": {
+        "base_step_pct": 1.7506472828318778,
+        "price_range_pct": 29.774390744496674,
+        "num_grids_min": 12,
+        "num_grids_max": 25,
+        "atr_period": 21,
+        "atr_mult_step": 0.8670914344211778,
+        "atr_mult_range": 8.323562331152218,
+        "vol_floor": 0.009233332188645273,
+        "vol_ceil": 0.09922411980790793,
+        "anchor_tf_minutes": 480,
+        "ema_fast": 9,
+        "ema_slow": 69,
+        "trend_slope_thresh": 0.001389910478389077,
+        "allow_with_trend_sells": true,
+        "skew_down": 0.08842637274435101,
+        "skew_up": 0.1093221514207321,
+        "z_atr_recenter": 1.4298042930526957,
+        "rebalance_threshold_pct": 3.537636032668595,
+        "cooldown_bars": 5,
+        "fee_bps": 35.22678605977069,
+        "min_edge_bps": 117.38709286559364,
+        "max_position_levels": 6,
+        "min_strength": 0.5500222620506046
+      }
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "next_trial_id": 2,
+  "completed": 1,
+  "total_requests": 1,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 594.045273303736,
+      "trial_id": 1,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 635,
+        "entry_drop": false,
+        "exit_up": 0.048,
+        "rsi_period": 39,
+        "rsi_max": 40.722479581429226,
+        "timeframe_minutes": 5
+      }
+    },
+    "profit_biased": {
+      "score": 0.14864541811775675,
+      "trial_id": 1,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 635,
+        "entry_drop": false,
+        "exit_up": 0.048,
+        "rsi_period": 39,
+        "rsi_max": 40.722479581429226,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.14864541811775675,
+      "trial_id": 1,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 635,
+        "entry_drop": false,
+        "exit_up": 0.048,
+        "rsi_period": 39,
+        "rsi_max": 40.722479581429226,
+        "timeframe_minutes": 5
+      }
+    },
+    "mar": {
+      "score": -405954726.69626397,
+      "trial_id": 1,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 635,
+        "entry_drop": false,
+        "exit_up": 0.048,
+        "rsi_period": 39,
+        "rsi_max": 40.722479581429226,
+        "timeframe_minutes": 5
+      }
+    },
+    "utility": {
+      "score": -0.1771598568962646,
+      "trial_id": 1,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 635,
+        "entry_drop": false,
+        "exit_up": 0.048,
+        "rsi_period": 39,
+        "rsi_max": 40.722479581429226,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps": {
+      "score": 38.02,
+      "trial_id": 1,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 635,
+        "entry_drop": false,
+        "exit_up": 0.048,
+        "rsi_period": 39,
+        "rsi_max": 40.722479581429226,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2": {
+      "score": 0.14864541811775675,
+      "trial_id": 1,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 635,
+        "entry_drop": false,
+        "exit_up": 0.048,
+        "rsi_period": 39,
+        "rsi_max": 40.722479581429226,
+        "timeframe_minutes": 5
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "strategies_file": "/Users/ruwodda/Documents/Personal/Repos/pulsechainTraderUniversal/strats_all.json",
+  "objectives": [
+    "final_balance",
+    "profit_biased",
+    "cps_v2_profit_biased",
+    "mar",
+    "utility",
+    "cps",
+    "cps_v2"
+  ],
+  "calls": 400,
+  "trade_size": 1000.0,
+  "data_path": "/Users/ruwodda/Documents/Personal/Repos/pulsechainTraderUniversal/data/pdai_ohlcv_dai_730day_5m.csv",
+  "swap_cost_cache": "/Users/ruwodda/Documents/Personal/Repos/pulsechainTraderUniversal/data/swap_cost_cache.json",
+  "stages": [
+    "30d",
+    "90d",
+    "1y",
+    "all"
+  ],
+  "cpu_fraction": 0.9,
+  "seed": null,
+  "created_at": "2025-10-08T16:14:06.376727+00:00"
+}

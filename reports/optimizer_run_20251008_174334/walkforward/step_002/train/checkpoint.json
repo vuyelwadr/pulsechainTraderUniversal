@@ -1,0 +1,136 @@
+{
+  "next_trial_id": 401,
+  "completed": 400,
+  "total_requests": 400,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 7712.865035649243,
+      "trial_id": 131,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 18,
+        "roc_period": 7,
+        "tsi_long": 36,
+        "tsi_short": 19,
+        "signal_threshold": 0.7
+      }
+    },
+    "profit_biased": {
+      "score": 0.7295423339821953,
+      "trial_id": 191,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 11,
+        "roc_period": 18,
+        "tsi_long": 15,
+        "tsi_short": 13,
+        "signal_threshold": 0.7
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.7295423339821953,
+      "trial_id": 191,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 11,
+        "roc_period": 18,
+        "tsi_long": 15,
+        "tsi_short": 13,
+        "signal_threshold": 0.7
+      }
+    },
+    "mar": {
+      "score": 6712865035.649242,
+      "trial_id": 131,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 18,
+        "roc_period": 7,
+        "tsi_long": 36,
+        "tsi_short": 19,
+        "signal_threshold": 0.7
+      }
+    },
+    "utility": {
+      "score": 2.495299487416403,
+      "trial_id": 319,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.026989424797814812,
+        "atr_mult": 1.7195830539687171,
+        "num_grids": 18,
+        "trend_ema_fast": 62,
+        "trend_ema_slow": 106,
+        "sell_spacing_mult_bull": 1.2648469843723635,
+        "buy_spacing_mult_bear": 1.7080594718427213,
+        "recenter_threshold_pct": 0.1399427922723209,
+        "recenter_dwell_bars": 9,
+        "center_lookback": 35,
+        "cooldown_bars": 6,
+        "min_strength": 0.7923414824111715,
+        "side_when_bear": 1,
+        "min_edge_pct": 0.02,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.011144931265295026,
+        "tol_buy_hi": 0.019144492131052897,
+        "tol_sell_lo": 0.007418277478247812,
+        "tol_sell_hi": 0.00826962423890106,
+        "timeframe_minutes": 60,
+        "breakout_window": 22,
+        "breakout_slope_min": 0.0025992559104183106,
+        "strong_slope_min": 0.001,
+        "trail_atr_mult": 2.0,
+        "no_sell_above_ema_fast_in_bull": 0,
+        "allow_bear_breakout_sell": 0
+      }
+    },
+    "cps": {
+      "score": 71.49,
+      "trial_id": 229,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.0188601424530804,
+        "atr_mult": 1.307857760854635,
+        "num_grids": 11,
+        "trend_ema_fast": 50,
+        "trend_ema_slow": 177,
+        "sell_spacing_mult_bull": 1.335380857478293,
+        "buy_spacing_mult_bear": 1.2,
+        "recenter_threshold_pct": 0.12,
+        "recenter_dwell_bars": 3,
+        "center_lookback": 11,
+        "cooldown_bars": 2,
+        "min_strength": 0.721533669458452,
+        "side_when_bear": 0,
+        "min_edge_pct": 0.011283091727636224,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.015870716583702954,
+        "tol_buy_hi": 0.005,
+        "tol_sell_lo": 0.015503064155088253,
+        "tol_sell_hi": 0.008474373509564608,
+        "timeframe_minutes": 60,
+        "breakout_window": 63,
+        "breakout_slope_min": 0.002185104456607919,
+        "strong_slope_min": 0.007895652099255775,
+        "trail_atr_mult": 1.76878559985508,
+        "no_sell_above_ema_fast_in_bull": 1,
+        "allow_bear_breakout_sell": 0
+      }
+    },
+    "cps_v2": {
+      "score": 0.7295423339821953,
+      "trial_id": 191,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 11,
+        "roc_period": 18,
+        "tsi_long": 15,
+        "tsi_short": 13,
+        "signal_threshold": 0.7
+      }
+    }
+  }
+}

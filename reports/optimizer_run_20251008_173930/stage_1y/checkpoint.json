@@ -1,0 +1,121 @@
+{
+  "next_trial_id": 55,
+  "completed": 54,
+  "total_requests": 400,
+  "remaining_calls": 346,
+  "best_scores": {
+    "final_balance": {
+      "score": 8937.512777620519,
+      "trial_id": 16,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 11.0,
+        "exit_days": 1.591129088204599,
+        "ema_exit_days": 3.2854771634691975,
+        "trailing_drawdown_pct": 0.2,
+        "timeframe_minutes": 5
+      }
+    },
+    "profit_biased": {
+      "score": 0.7664620574152019,
+      "trial_id": 10,
+      "strategy": "ChampionHybridStrategy",
+      "parameters": {
+        "mtf_ltf_period": 7,
+        "mtf_htf_period": 52,
+        "mtf_weight": 0.5,
+        "macd_fast": 10,
+        "macd_slow": 58,
+        "macd_signal": 14,
+        "macd_weight": 0.4832713764479717,
+        "rsi_period": 31,
+        "rsi_oversold": 23,
+        "rsi_overbought": 75,
+        "rsi_weight": 0.2964759678425438,
+        "min_consensus": 0.7486805823873726,
+        "confirmation_required": 3
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.7664620574152019,
+      "trial_id": 10,
+      "strategy": "ChampionHybridStrategy",
+      "parameters": {
+        "mtf_ltf_period": 7,
+        "mtf_htf_period": 52,
+        "mtf_weight": 0.5,
+        "macd_fast": 10,
+        "macd_slow": 58,
+        "macd_signal": 14,
+        "macd_weight": 0.4832713764479717,
+        "rsi_period": 31,
+        "rsi_oversold": 23,
+        "rsi_overbought": 75,
+        "rsi_weight": 0.2964759678425438,
+        "min_consensus": 0.7486805823873726,
+        "confirmation_required": 3
+      }
+    },
+    "mar": {
+      "score": 7937512777.620519,
+      "trial_id": 16,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 11.0,
+        "exit_days": 1.591129088204599,
+        "ema_exit_days": 3.2854771634691975,
+        "trailing_drawdown_pct": 0.2,
+        "timeframe_minutes": 5
+      }
+    },
+    "utility": {
+      "score": 3.692315276156598,
+      "trial_id": 16,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 11.0,
+        "exit_days": 1.591129088204599,
+        "ema_exit_days": 3.2854771634691975,
+        "trailing_drawdown_pct": 0.2,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps": {
+      "score": 66.0,
+      "trial_id": 14,
+      "strategy": "DCAStrategy",
+      "parameters": {
+        "dca_type": "hybrid",
+        "time_interval": 30,
+        "price_drop_threshold": 0.9929875384915593,
+        "base_position_size": 1.0,
+        "scaling_factor": 2.586303104605432,
+        "max_scaling": 3.0,
+        "take_profit_pct": 0.762077354216462,
+        "stop_loss_pct": 0.3,
+        "min_strength": 0.0018888397044517502,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2": {
+      "score": 0.7664620574152019,
+      "trial_id": 10,
+      "strategy": "ChampionHybridStrategy",
+      "parameters": {
+        "mtf_ltf_period": 7,
+        "mtf_htf_period": 52,
+        "mtf_weight": 0.5,
+        "macd_fast": 10,
+        "macd_slow": 58,
+        "macd_signal": 14,
+        "macd_weight": 0.4832713764479717,
+        "rsi_period": 31,
+        "rsi_oversold": 23,
+        "rsi_overbought": 75,
+        "rsi_weight": 0.2964759678425438,
+        "min_consensus": 0.7486805823873726,
+        "confirmation_required": 3
+      }
+    }
+  }
+}

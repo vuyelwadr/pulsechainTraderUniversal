@@ -1,0 +1,92 @@
+{
+  "next_trial_id": 401,
+  "completed": 400,
+  "total_requests": 400,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 41377.39826758862,
+      "trial_id": 193,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 14,
+        "roc_period": 5,
+        "tsi_long": 20,
+        "tsi_short": 15,
+        "signal_threshold": 0.8349869909963968
+      }
+    },
+    "profit_biased": {
+      "score": 0.7213033965140184,
+      "trial_id": 142,
+      "strategy": "PremierStochasticStrategy",
+      "parameters": {
+        "period": 12,
+        "smooth_period": 48,
+        "overbought": 0.691371652079593,
+        "oversold": -0.8720601566370374,
+        "signal_threshold": 0.6350610916838181
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.7213033965140184,
+      "trial_id": 142,
+      "strategy": "PremierStochasticStrategy",
+      "parameters": {
+        "period": 12,
+        "smooth_period": 48,
+        "overbought": 0.691371652079593,
+        "oversold": -0.8720601566370374,
+        "signal_threshold": 0.6350610916838181
+      }
+    },
+    "mar": {
+      "score": 40377398267.58862,
+      "trial_id": 193,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 14,
+        "roc_period": 5,
+        "tsi_long": 20,
+        "tsi_short": 15,
+        "signal_threshold": 0.8349869909963968
+      }
+    },
+    "utility": {
+      "score": 12.91044369473818,
+      "trial_id": 193,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 14,
+        "roc_period": 5,
+        "tsi_long": 20,
+        "tsi_short": 15,
+        "signal_threshold": 0.8349869909963968
+      }
+    },
+    "cps": {
+      "score": 65.5,
+      "trial_id": 16,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 10.738782799720424,
+        "exit_days": 2.0,
+        "ema_exit_days": 4.05168779821707,
+        "trailing_drawdown_pct": 0.2,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2": {
+      "score": 0.7213033965140184,
+      "trial_id": 142,
+      "strategy": "PremierStochasticStrategy",
+      "parameters": {
+        "period": 12,
+        "smooth_period": 48,
+        "overbought": 0.691371652079593,
+        "oversold": -0.8720601566370374,
+        "signal_threshold": 0.6350610916838181
+      }
+    }
+  }
+}

@@ -1,0 +1,2 @@
+trial_id,strategy,parameters,best_objective,best_objective_score,total_return_pct,buy_hold_return_pct,buy_hold_max_drawdown_pct,max_drawdown_pct,cagr_pct,sharpe_ratio,sortino_ratio,win_rate_pct,total_trades,profit_factor,recovery_factor,total_cost_pct,avg_cost_per_trade_pct,final_balance
+1,CSMARevertStrategy,"{""entry_drop"": true, ""exit_up"": true, ""n_sma"": 319, ""rsi_max"": 42.742755238454414, ""rsi_period"": 31, ""timeframe_minutes"": 5}",final_balance,1000.0,0.0,200.10062012394803,-99.7381334979267,0.0,0.0,0.0,0.0,0.0,0,0.0,0.0,0.0,0.0,1000.0

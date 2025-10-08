@@ -1,0 +1,151 @@
+{
+  "next_trial_id": 201,
+  "completed": 200,
+  "total_requests": 200,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 3450.2101208448953,
+      "trial_id": 145,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.02,
+        "atr_mult": 0.9468722057341785,
+        "num_grids": 20,
+        "trend_ema_fast": 45,
+        "trend_ema_slow": 346,
+        "sell_spacing_mult_bull": 1.5527269419247096,
+        "buy_spacing_mult_bear": 1.5462055214215384,
+        "recenter_threshold_pct": 0.14559982312304456,
+        "recenter_dwell_bars": 6,
+        "center_lookback": 35,
+        "cooldown_bars": 2,
+        "min_strength": 0.6979808003403936,
+        "side_when_bear": 1,
+        "min_edge_pct": 0.015409106205769709,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.01909686249730718,
+        "tol_buy_hi": 0.017139728048242667,
+        "tol_sell_lo": 0.015166376256332756,
+        "tol_sell_hi": 0.008665895442682366,
+        "timeframe_minutes": 60,
+        "breakout_window": 57,
+        "breakout_slope_min": 0.00201614992993513,
+        "strong_slope_min": 0.008880470651597784,
+        "trail_atr_mult": 3.080154481242191,
+        "no_sell_above_ema_fast_in_bull": 1,
+        "allow_bear_breakout_sell": 0
+      }
+    },
+    "profit_biased": {
+      "score": 0.7507037133095424,
+      "trial_id": 53,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 366,
+        "entry_drop": 0.11988116229735346,
+        "exit_up": 0.6141020861136599,
+        "rsi_period": 16,
+        "rsi_max": 32.0,
+        "atr_period": 5,
+        "atr_mult": 1.5594887663304693,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.7507037133095424,
+      "trial_id": 53,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 366,
+        "entry_drop": 0.11988116229735346,
+        "exit_up": 0.6141020861136599,
+        "rsi_period": 16,
+        "rsi_max": 32.0,
+        "atr_period": 5,
+        "atr_mult": 1.5594887663304693,
+        "timeframe_minutes": 5
+      }
+    },
+    "mar": {
+      "score": 2450210120.844895,
+      "trial_id": 145,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.02,
+        "atr_mult": 0.9468722057341785,
+        "num_grids": 20,
+        "trend_ema_fast": 45,
+        "trend_ema_slow": 346,
+        "sell_spacing_mult_bull": 1.5527269419247096,
+        "buy_spacing_mult_bear": 1.5462055214215384,
+        "recenter_threshold_pct": 0.14559982312304456,
+        "recenter_dwell_bars": 6,
+        "center_lookback": 35,
+        "cooldown_bars": 2,
+        "min_strength": 0.6979808003403936,
+        "side_when_bear": 1,
+        "min_edge_pct": 0.015409106205769709,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.01909686249730718,
+        "tol_buy_hi": 0.017139728048242667,
+        "tol_sell_lo": 0.015166376256332756,
+        "tol_sell_hi": 0.008665895442682366,
+        "timeframe_minutes": 60,
+        "breakout_window": 57,
+        "breakout_slope_min": 0.00201614992993513,
+        "strong_slope_min": 0.008880470651597784,
+        "trail_atr_mult": 3.080154481242191,
+        "no_sell_above_ema_fast_in_bull": 1,
+        "allow_bear_breakout_sell": 0
+      }
+    },
+    "utility": {
+      "score": 1.491174264793913,
+      "trial_id": 53,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 366,
+        "entry_drop": 0.11988116229735346,
+        "exit_up": 0.6141020861136599,
+        "rsi_period": 16,
+        "rsi_max": 32.0,
+        "atr_period": 5,
+        "atr_mult": 1.5594887663304693,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps": {
+      "score": 76.93,
+      "trial_id": 53,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 366,
+        "entry_drop": 0.11988116229735346,
+        "exit_up": 0.6141020861136599,
+        "rsi_period": 16,
+        "rsi_max": 32.0,
+        "atr_period": 5,
+        "atr_mult": 1.5594887663304693,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2": {
+      "score": 0.7507037133095424,
+      "trial_id": 53,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 366,
+        "entry_drop": 0.11988116229735346,
+        "exit_up": 0.6141020861136599,
+        "rsi_period": 16,
+        "rsi_max": 32.0,
+        "atr_period": 5,
+        "atr_mult": 1.5594887663304693,
+        "timeframe_minutes": 5
+      }
+    }
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "next_trial_id": 401,
+  "completed": 400,
+  "total_requests": 400,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 1955.408114331172,
+      "trial_id": 11,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 13,
+        "roc_period": 18,
+        "tsi_long": 40,
+        "tsi_short": 20,
+        "signal_threshold": 0.34853825775039365
+      }
+    },
+    "profit_biased": {
+      "score": 0.9030558377964827,
+      "trial_id": 29,
+      "strategy": "GridTradingStrategyV2Pro",
+      "parameters": {
+        "base_grid_size_percent": 1.3845093851955754,
+        "num_grids": 20,
+        "price_range_percent": 19.81409088338485,
+        "min_strength": 0.08031808131730908,
+        "vol_threshold": 0.034208438600796545,
+        "rebalance_threshold": 1.202462120457795,
+        "anchor_lookback": 36,
+        "atr_period": 28,
+        "step_vol_mult": 1.1017192577527144,
+        "skew_strength": 0.5,
+        "zscore_limit": 1.8300539855483349,
+        "cooldown_bars": 1
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.9030558377964827,
+      "trial_id": 29,
+      "strategy": "GridTradingStrategyV2Pro",
+      "parameters": {
+        "base_grid_size_percent": 1.3845093851955754,
+        "num_grids": 20,
+        "price_range_percent": 19.81409088338485,
+        "min_strength": 0.08031808131730908,
+        "vol_threshold": 0.034208438600796545,
+        "rebalance_threshold": 1.202462120457795,
+        "anchor_lookback": 36,
+        "atr_period": 28,
+        "step_vol_mult": 1.1017192577527144,
+        "skew_strength": 0.5,
+        "zscore_limit": 1.8300539855483349,
+        "cooldown_bars": 1
+      }
+    },
+    "mar": {
+      "score": 955408114.3311721,
+      "trial_id": 11,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 13,
+        "roc_period": 18,
+        "tsi_long": 40,
+        "tsi_short": 20,
+        "signal_threshold": 0.34853825775039365
+      }
+    },
+    "utility": {
+      "score": 0.4569582395885107,
+      "trial_id": 11,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 13,
+        "roc_period": 18,
+        "tsi_long": 40,
+        "tsi_short": 20,
+        "signal_threshold": 0.34853825775039365
+      }
+    },
+    "cps": {
+      "score": 90.5,
+      "trial_id": 29,
+      "strategy": "GridTradingStrategyV2Pro",
+      "parameters": {
+        "base_grid_size_percent": 1.3845093851955754,
+        "num_grids": 20,
+        "price_range_percent": 19.81409088338485,
+        "min_strength": 0.08031808131730908,
+        "vol_threshold": 0.034208438600796545,
+        "rebalance_threshold": 1.202462120457795,
+        "anchor_lookback": 36,
+        "atr_period": 28,
+        "step_vol_mult": 1.1017192577527144,
+        "skew_strength": 0.5,
+        "zscore_limit": 1.8300539855483349,
+        "cooldown_bars": 1
+      }
+    },
+    "cps_v2": {
+      "score": 0.9030558377964827,
+      "trial_id": 29,
+      "strategy": "GridTradingStrategyV2Pro",
+      "parameters": {
+        "base_grid_size_percent": 1.3845093851955754,
+        "num_grids": 20,
+        "price_range_percent": 19.81409088338485,
+        "min_strength": 0.08031808131730908,
+        "vol_threshold": 0.034208438600796545,
+        "rebalance_threshold": 1.202462120457795,
+        "anchor_lookback": 36,
+        "atr_period": 28,
+        "step_vol_mult": 1.1017192577527144,
+        "skew_strength": 0.5,
+        "zscore_limit": 1.8300539855483349,
+        "cooldown_bars": 1
+      }
+    }
+  }
+}

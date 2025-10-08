@@ -1,0 +1,110 @@
+{
+  "next_trial_id": 401,
+  "completed": 400,
+  "total_requests": 400,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 1096.7011444628824,
+      "trial_id": 55,
+      "strategy": "RSIStrategy",
+      "parameters": {
+        "rsi_period": 47,
+        "oversold_level": 15.477092455337273,
+        "overbought_level": 70.0,
+        "min_strength": 0.13707265409413916
+      }
+    },
+    "profit_biased": {
+      "score": 0.8148242138996131,
+      "trial_id": 55,
+      "strategy": "RSIStrategy",
+      "parameters": {
+        "rsi_period": 47,
+        "oversold_level": 15.477092455337273,
+        "overbought_level": 70.0,
+        "min_strength": 0.13707265409413916
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.8148242138996131,
+      "trial_id": 55,
+      "strategy": "RSIStrategy",
+      "parameters": {
+        "rsi_period": 47,
+        "oversold_level": 15.477092455337273,
+        "overbought_level": 70.0,
+        "min_strength": 0.13707265409413916
+      }
+    },
+    "mar": {
+      "score": 96701144.46288246,
+      "trial_id": 55,
+      "strategy": "RSIStrategy",
+      "parameters": {
+        "rsi_period": 47,
+        "oversold_level": 15.477092455337273,
+        "overbought_level": 70.0,
+        "min_strength": 0.13707265409413916
+      }
+    },
+    "utility": {
+      "score": 0.04597522005332949,
+      "trial_id": 348,
+      "strategy": "TMCCCBCIHybridStrategy",
+      "parameters": {
+        "ema_len": 21,
+        "atr_len": 16,
+        "mul": 1.767931702041877,
+        "rsi_period": 24,
+        "cb_low": 23,
+        "cb_high": 59,
+        "signal_threshold": 0.023755427844202814,
+        "timeframe_minutes": 60
+      }
+    },
+    "cps": {
+      "score": 90.5,
+      "trial_id": 213,
+      "strategy": "GridTradingStrategyV3Overdrive",
+      "parameters": {
+        "base_grid_size_percent": 3.7683949209482597,
+        "num_grids": 9,
+        "price_range_percent": 35.03176446736394,
+        "min_strength": 0.21961661979495295,
+        "vol_threshold": 0.006,
+        "rebalance_threshold": 0.07167879147739498,
+        "anchor_lookback": 25,
+        "atr_period": 20,
+        "step_vol_mult": 0.6681257265802049,
+        "skew_strength": 0.6506095397895911,
+        "zscore_limit": 1.9,
+        "cooldown_bars": 0,
+        "dual_anchor_fast": 26,
+        "dual_anchor_slow": 103,
+        "pyramid_multiplier": 1.9162613461989526,
+        "pyramid_slope_fast": 0.0011662358577429082,
+        "pyramid_slope_slow": 0.0014703669447831452,
+        "breakout_window": 54,
+        "breakout_z_threshold": 2.252468594352345,
+        "micro_grid_span": 2,
+        "micro_grid_decay": 11,
+        "trailing_atr_mult": 3.005180748991992,
+        "volatility_compression_pct": 0.010599386942507456,
+        "compression_bars": 12,
+        "max_active_levels": 8
+      }
+    },
+    "cps_v2": {
+      "score": 0.8148242138996131,
+      "trial_id": 55,
+      "strategy": "RSIStrategy",
+      "parameters": {
+        "rsi_period": 47,
+        "oversold_level": 15.477092455337273,
+        "overbought_level": 70.0,
+        "min_strength": 0.13707265409413916
+      }
+    }
+  }
+}

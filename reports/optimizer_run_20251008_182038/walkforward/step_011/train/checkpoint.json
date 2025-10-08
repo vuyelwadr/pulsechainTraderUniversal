@@ -1,0 +1,192 @@
+{
+  "next_trial_id": 201,
+  "completed": 200,
+  "total_requests": 200,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 20913.85720866322,
+      "trial_id": 132,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 14,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 119,
+        "oversold": 39,
+        "signal_threshold": 0.10332016496911312
+      }
+    },
+    "profit_biased": {
+      "score": 0.32223863848069245,
+      "trial_id": 128,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.014767598094951383,
+        "atr_mult": 1.074684926801734,
+        "num_grids": 8,
+        "trend_ema_fast": 28,
+        "trend_ema_slow": 174,
+        "sell_spacing_mult_bull": 1.306242622783403,
+        "buy_spacing_mult_bear": 1.256641990480337,
+        "recenter_threshold_pct": 0.1105661783652282,
+        "recenter_dwell_bars": 4,
+        "center_lookback": 17,
+        "cooldown_bars": 2,
+        "min_strength": 0.6163952471265889,
+        "side_when_bear": 2,
+        "min_edge_pct": 0.016767119684727258,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.006481199464653844,
+        "tol_buy_hi": 0.003852739465338009,
+        "tol_sell_lo": 0.01870738771910014,
+        "tol_sell_hi": 0.013783469727123378,
+        "timeframe_minutes": 60,
+        "breakout_window": 50,
+        "breakout_slope_min": 0.002647369163754663,
+        "strong_slope_min": 0.006718490834257372,
+        "trail_atr_mult": 2.2022526146129424,
+        "no_sell_above_ema_fast_in_bull": 1,
+        "allow_bear_breakout_sell": 1
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.32223863848069245,
+      "trial_id": 128,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.014767598094951383,
+        "atr_mult": 1.074684926801734,
+        "num_grids": 8,
+        "trend_ema_fast": 28,
+        "trend_ema_slow": 174,
+        "sell_spacing_mult_bull": 1.306242622783403,
+        "buy_spacing_mult_bear": 1.256641990480337,
+        "recenter_threshold_pct": 0.1105661783652282,
+        "recenter_dwell_bars": 4,
+        "center_lookback": 17,
+        "cooldown_bars": 2,
+        "min_strength": 0.6163952471265889,
+        "side_when_bear": 2,
+        "min_edge_pct": 0.016767119684727258,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.006481199464653844,
+        "tol_buy_hi": 0.003852739465338009,
+        "tol_sell_lo": 0.01870738771910014,
+        "tol_sell_hi": 0.013783469727123378,
+        "timeframe_minutes": 60,
+        "breakout_window": 50,
+        "breakout_slope_min": 0.002647369163754663,
+        "strong_slope_min": 0.006718490834257372,
+        "trail_atr_mult": 2.2022526146129424,
+        "no_sell_above_ema_fast_in_bull": 1,
+        "allow_bear_breakout_sell": 1
+      }
+    },
+    "mar": {
+      "score": 19913857208.66322,
+      "trial_id": 132,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 14,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 119,
+        "oversold": 39,
+        "signal_threshold": 0.10332016496911312
+      }
+    },
+    "utility": {
+      "score": 5.765422665044153,
+      "trial_id": 172,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 25,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 82,
+        "oversold": 30,
+        "signal_threshold": 0.9971706571453841
+      }
+    },
+    "cps": {
+      "score": 75.59,
+      "trial_id": 8,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.020775871910763223,
+        "atr_mult": 1.0,
+        "num_grids": 6,
+        "trend_ema_fast": 42,
+        "trend_ema_slow": 315,
+        "sell_spacing_mult_bull": 1.3735380651329283,
+        "buy_spacing_mult_bear": 1.5790617190456024,
+        "recenter_threshold_pct": 0.18226571265079589,
+        "recenter_dwell_bars": 3,
+        "center_lookback": 27,
+        "cooldown_bars": 2,
+        "min_strength": 0.55,
+        "side_when_bear": 2,
+        "min_edge_pct": 0.017765899409042697,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.006557658627513218,
+        "tol_buy_hi": 0.013051133322796343,
+        "tol_sell_lo": 0.005,
+        "tol_sell_hi": 0.006043423210133794,
+        "timeframe_minutes": 60,
+        "breakout_window": 35,
+        "breakout_slope_min": 0.0005,
+        "strong_slope_min": 0.00866766070510478,
+        "trail_atr_mult": 1.2124469460584446,
+        "no_sell_above_ema_fast_in_bull": 0,
+        "allow_bear_breakout_sell": 1
+      }
+    },
+    "cps_v2": {
+      "score": 0.32223863848069245,
+      "trial_id": 128,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.014767598094951383,
+        "atr_mult": 1.074684926801734,
+        "num_grids": 8,
+        "trend_ema_fast": 28,
+        "trend_ema_slow": 174,
+        "sell_spacing_mult_bull": 1.306242622783403,
+        "buy_spacing_mult_bear": 1.256641990480337,
+        "recenter_threshold_pct": 0.1105661783652282,
+        "recenter_dwell_bars": 4,
+        "center_lookback": 17,
+        "cooldown_bars": 2,
+        "min_strength": 0.6163952471265889,
+        "side_when_bear": 2,
+        "min_edge_pct": 0.016767119684727258,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.006481199464653844,
+        "tol_buy_hi": 0.003852739465338009,
+        "tol_sell_lo": 0.01870738771910014,
+        "tol_sell_hi": 0.013783469727123378,
+        "timeframe_minutes": 60,
+        "breakout_window": 50,
+        "breakout_slope_min": 0.002647369163754663,
+        "strong_slope_min": 0.006718490834257372,
+        "trail_atr_mult": 2.2022526146129424,
+        "no_sell_above_ema_fast_in_bull": 1,
+        "allow_bear_breakout_sell": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "next_trial_id": 401,
+  "completed": 400,
+  "total_requests": 400,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 32850.747996534774,
+      "trial_id": 11,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 22,
+        "roc_period": 10,
+        "tsi_long": 32,
+        "tsi_short": 13,
+        "signal_threshold": 0.5835949431619851
+      }
+    },
+    "profit_biased": {
+      "score": 0.89268779666045,
+      "trial_id": 247,
+      "strategy": "Strategy_59_LindaRaschkeOscillator",
+      "parameters": {
+        "fast_period": 20,
+        "slow_period": 46,
+        "smooth_period": 3,
+        "overbought": 73.64900244680864,
+        "oversold": 38.78381576291285,
+        "signal_threshold": true
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.89268779666045,
+      "trial_id": 247,
+      "strategy": "Strategy_59_LindaRaschkeOscillator",
+      "parameters": {
+        "fast_period": 20,
+        "slow_period": 46,
+        "smooth_period": 3,
+        "overbought": 73.64900244680864,
+        "oversold": 38.78381576291285,
+        "signal_threshold": true
+      }
+    },
+    "mar": {
+      "score": 31850747996.534767,
+      "trial_id": 11,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 22,
+        "roc_period": 10,
+        "tsi_long": 32,
+        "tsi_short": 13,
+        "signal_threshold": 0.5835949431619851
+      }
+    },
+    "utility": {
+      "score": 9.93869950154331,
+      "trial_id": 11,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 22,
+        "roc_period": 10,
+        "tsi_long": 32,
+        "tsi_short": 13,
+        "signal_threshold": 0.5835949431619851
+      }
+    },
+    "cps": {
+      "score": 86.5,
+      "trial_id": 211,
+      "strategy": "GridTradingStrategyV2Pro",
+      "parameters": {
+        "base_grid_size_percent": 2.6581149162832594,
+        "num_grids": 16,
+        "price_range_percent": 21.328209417316117,
+        "min_strength": 0.2877049920006438,
+        "vol_threshold": 0.05983559955835339,
+        "rebalance_threshold": 1.277922227187179,
+        "anchor_lookback": 32,
+        "atr_period": 14,
+        "step_vol_mult": 0.8741384146047614,
+        "skew_strength": 0.8617983080727648,
+        "zscore_limit": 1.6365412596972564,
+        "cooldown_bars": 0
+      }
+    },
+    "cps_v2": {
+      "score": 0.89268779666045,
+      "trial_id": 247,
+      "strategy": "Strategy_59_LindaRaschkeOscillator",
+      "parameters": {
+        "fast_period": 20,
+        "slow_period": 46,
+        "smooth_period": 3,
+        "overbought": 73.64900244680864,
+        "oversold": 38.78381576291285,
+        "signal_threshold": true
+      }
+    }
+  }
+}

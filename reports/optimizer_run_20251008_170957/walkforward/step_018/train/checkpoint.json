@@ -1,0 +1,92 @@
+{
+  "next_trial_id": 401,
+  "completed": 400,
+  "total_requests": 400,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 39247.79036678515,
+      "trial_id": 31,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 23,
+        "roc_period": 6,
+        "tsi_long": 20,
+        "tsi_short": 19,
+        "signal_threshold": 0.02723437485382044
+      }
+    },
+    "profit_biased": {
+      "score": 0.8077150328215805,
+      "trial_id": 341,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 27,
+        "roc_period": 12,
+        "tsi_long": 33,
+        "tsi_short": 13,
+        "signal_threshold": 0.7
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.8077150328215805,
+      "trial_id": 341,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 27,
+        "roc_period": 12,
+        "tsi_long": 33,
+        "tsi_short": 13,
+        "signal_threshold": 0.7
+      }
+    },
+    "mar": {
+      "score": 38247790366.78514,
+      "trial_id": 31,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 23,
+        "roc_period": 6,
+        "tsi_long": 20,
+        "tsi_short": 19,
+        "signal_threshold": 0.02723437485382044
+      }
+    },
+    "utility": {
+      "score": 10.984226117472234,
+      "trial_id": 31,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 23,
+        "roc_period": 6,
+        "tsi_long": 20,
+        "tsi_short": 19,
+        "signal_threshold": 0.02723437485382044
+      }
+    },
+    "cps": {
+      "score": 80.5,
+      "trial_id": 341,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 27,
+        "roc_period": 12,
+        "tsi_long": 33,
+        "tsi_short": 13,
+        "signal_threshold": 0.7
+      }
+    },
+    "cps_v2": {
+      "score": 0.8077150328215805,
+      "trial_id": 341,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 27,
+        "roc_period": 12,
+        "tsi_long": 33,
+        "tsi_short": 13,
+        "signal_threshold": 0.7
+      }
+    }
+  }
+}

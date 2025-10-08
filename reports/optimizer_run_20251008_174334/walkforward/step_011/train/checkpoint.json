@@ -1,0 +1,192 @@
+{
+  "next_trial_id": 401,
+  "completed": 400,
+  "total_requests": 400,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 21170.884292090603,
+      "trial_id": 13,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 13,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 90,
+        "oversold": 55,
+        "signal_threshold": 0.7769716306009812
+      }
+    },
+    "profit_biased": {
+      "score": 0.3254520993760674,
+      "trial_id": 19,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.024467913260652355,
+        "atr_mult": 1.0,
+        "num_grids": 8,
+        "trend_ema_fast": 63,
+        "trend_ema_slow": 237,
+        "sell_spacing_mult_bull": 1.753803710326991,
+        "buy_spacing_mult_bear": 1.2964736784838358,
+        "recenter_threshold_pct": 0.20116733363424638,
+        "recenter_dwell_bars": 11,
+        "center_lookback": 19,
+        "cooldown_bars": 2,
+        "min_strength": 0.55,
+        "side_when_bear": 0,
+        "min_edge_pct": 0.021198762248490325,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.01,
+        "tol_buy_hi": 0.019433647093247693,
+        "tol_sell_lo": 0.011831148513803938,
+        "tol_sell_hi": 0.013291549112837059,
+        "timeframe_minutes": 60,
+        "breakout_window": 72,
+        "breakout_slope_min": 0.0002809536258934685,
+        "strong_slope_min": 0.0022023412822977807,
+        "trail_atr_mult": 1.0592174683017004,
+        "no_sell_above_ema_fast_in_bull": 0,
+        "allow_bear_breakout_sell": 0
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.3254520993760674,
+      "trial_id": 19,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.024467913260652355,
+        "atr_mult": 1.0,
+        "num_grids": 8,
+        "trend_ema_fast": 63,
+        "trend_ema_slow": 237,
+        "sell_spacing_mult_bull": 1.753803710326991,
+        "buy_spacing_mult_bear": 1.2964736784838358,
+        "recenter_threshold_pct": 0.20116733363424638,
+        "recenter_dwell_bars": 11,
+        "center_lookback": 19,
+        "cooldown_bars": 2,
+        "min_strength": 0.55,
+        "side_when_bear": 0,
+        "min_edge_pct": 0.021198762248490325,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.01,
+        "tol_buy_hi": 0.019433647093247693,
+        "tol_sell_lo": 0.011831148513803938,
+        "tol_sell_hi": 0.013291549112837059,
+        "timeframe_minutes": 60,
+        "breakout_window": 72,
+        "breakout_slope_min": 0.0002809536258934685,
+        "strong_slope_min": 0.0022023412822977807,
+        "trail_atr_mult": 1.0592174683017004,
+        "no_sell_above_ema_fast_in_bull": 0,
+        "allow_bear_breakout_sell": 0
+      }
+    },
+    "mar": {
+      "score": 20170884292.0906,
+      "trial_id": 13,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 13,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 90,
+        "oversold": 55,
+        "signal_threshold": 0.7769716306009812
+      }
+    },
+    "utility": {
+      "score": 6.511414124630756,
+      "trial_id": 318,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 43,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 70,
+        "oversold": 52,
+        "signal_threshold": 0.2812915264384519
+      }
+    },
+    "cps": {
+      "score": 75.61,
+      "trial_id": 19,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.024467913260652355,
+        "atr_mult": 1.0,
+        "num_grids": 8,
+        "trend_ema_fast": 63,
+        "trend_ema_slow": 237,
+        "sell_spacing_mult_bull": 1.753803710326991,
+        "buy_spacing_mult_bear": 1.2964736784838358,
+        "recenter_threshold_pct": 0.20116733363424638,
+        "recenter_dwell_bars": 11,
+        "center_lookback": 19,
+        "cooldown_bars": 2,
+        "min_strength": 0.55,
+        "side_when_bear": 0,
+        "min_edge_pct": 0.021198762248490325,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.01,
+        "tol_buy_hi": 0.019433647093247693,
+        "tol_sell_lo": 0.011831148513803938,
+        "tol_sell_hi": 0.013291549112837059,
+        "timeframe_minutes": 60,
+        "breakout_window": 72,
+        "breakout_slope_min": 0.0002809536258934685,
+        "strong_slope_min": 0.0022023412822977807,
+        "trail_atr_mult": 1.0592174683017004,
+        "no_sell_above_ema_fast_in_bull": 0,
+        "allow_bear_breakout_sell": 0
+      }
+    },
+    "cps_v2": {
+      "score": 0.3254520993760674,
+      "trial_id": 19,
+      "strategy": "GridTradingStrategyV2Aggressive",
+      "parameters": {
+        "min_step_pct": 0.024467913260652355,
+        "atr_mult": 1.0,
+        "num_grids": 8,
+        "trend_ema_fast": 63,
+        "trend_ema_slow": 237,
+        "sell_spacing_mult_bull": 1.753803710326991,
+        "buy_spacing_mult_bear": 1.2964736784838358,
+        "recenter_threshold_pct": 0.20116733363424638,
+        "recenter_dwell_bars": 11,
+        "center_lookback": 19,
+        "cooldown_bars": 2,
+        "min_strength": 0.55,
+        "side_when_bear": 0,
+        "min_edge_pct": 0.021198762248490325,
+        "fee_pct": 0.0025,
+        "slippage_pct": 0.01,
+        "tol_buy_lo": 0.01,
+        "tol_buy_hi": 0.019433647093247693,
+        "tol_sell_lo": 0.011831148513803938,
+        "tol_sell_hi": 0.013291549112837059,
+        "timeframe_minutes": 60,
+        "breakout_window": 72,
+        "breakout_slope_min": 0.0002809536258934685,
+        "strong_slope_min": 0.0022023412822977807,
+        "trail_atr_mult": 1.0592174683017004,
+        "no_sell_above_ema_fast_in_bull": 0,
+        "allow_bear_breakout_sell": 0
+      }
+    }
+  }
+}

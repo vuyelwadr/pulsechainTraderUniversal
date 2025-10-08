@@ -1,0 +1,125 @@
+{
+  "next_trial_id": 401,
+  "completed": 400,
+  "total_requests": 400,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 48626.48034343003,
+      "trial_id": 193,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 28,
+        "roc_period": 10,
+        "tsi_long": 25,
+        "tsi_short": 20,
+        "signal_threshold": 0.7
+      }
+    },
+    "profit_biased": {
+      "score": 0.7664620574152019,
+      "trial_id": 10,
+      "strategy": "ChampionHybridStrategy",
+      "parameters": {
+        "mtf_ltf_period": 5,
+        "mtf_htf_period": 40,
+        "mtf_weight": 0.36081441277008763,
+        "macd_fast": 8,
+        "macd_slow": 32,
+        "macd_signal": 10,
+        "macd_weight": 0.3,
+        "rsi_period": 13,
+        "rsi_oversold": 18,
+        "rsi_overbought": 71,
+        "rsi_weight": 0.2986110677978618,
+        "min_consensus": 0.6494388702621219,
+        "confirmation_required": 3
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.7664620574152019,
+      "trial_id": 10,
+      "strategy": "ChampionHybridStrategy",
+      "parameters": {
+        "mtf_ltf_period": 5,
+        "mtf_htf_period": 40,
+        "mtf_weight": 0.36081441277008763,
+        "macd_fast": 8,
+        "macd_slow": 32,
+        "macd_signal": 10,
+        "macd_weight": 0.3,
+        "rsi_period": 13,
+        "rsi_oversold": 18,
+        "rsi_overbought": 71,
+        "rsi_weight": 0.2986110677978618,
+        "min_consensus": 0.6494388702621219,
+        "confirmation_required": 3
+      }
+    },
+    "mar": {
+      "score": 47626480343.430016,
+      "trial_id": 193,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 28,
+        "roc_period": 10,
+        "tsi_long": 25,
+        "tsi_short": 20,
+        "signal_threshold": 0.7
+      }
+    },
+    "utility": {
+      "score": 13.758941269355104,
+      "trial_id": 193,
+      "strategy": "CompositeMomentumIndexStrategy",
+      "parameters": {
+        "rsi_period": 28,
+        "roc_period": 10,
+        "tsi_long": 25,
+        "tsi_short": 20,
+        "signal_threshold": 0.7
+      }
+    },
+    "cps": {
+      "score": 70.0,
+      "trial_id": 124,
+      "strategy": "HybridV2Strategy",
+      "parameters": {
+        "timeframe_minutes": 5,
+        "n_sma": 576,
+        "entry_drop": false,
+        "rsi_period": 37,
+        "rsi_max": 21.276300370128247,
+        "base_exit_up": 0.05,
+        "z_mult": true,
+        "exit_cap": false,
+        "max_hold_bars": 1415,
+        "ema_fast": 39,
+        "ema_slow": 22,
+        "gap_min": false,
+        "n_break": 89,
+        "trail_uptrend": false
+      }
+    },
+    "cps_v2": {
+      "score": 0.7664620574152019,
+      "trial_id": 10,
+      "strategy": "ChampionHybridStrategy",
+      "parameters": {
+        "mtf_ltf_period": 5,
+        "mtf_htf_period": 40,
+        "mtf_weight": 0.36081441277008763,
+        "macd_fast": 8,
+        "macd_slow": 32,
+        "macd_signal": 10,
+        "macd_weight": 0.3,
+        "rsi_period": 13,
+        "rsi_oversold": 18,
+        "rsi_overbought": 71,
+        "rsi_weight": 0.2986110677978618,
+        "min_consensus": 0.6494388702621219,
+        "confirmation_required": 3
+      }
+    }
+  }
+}

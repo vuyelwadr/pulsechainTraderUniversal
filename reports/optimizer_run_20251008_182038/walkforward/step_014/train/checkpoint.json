@@ -1,0 +1,116 @@
+{
+  "next_trial_id": 201,
+  "completed": 200,
+  "total_requests": 200,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 1892.5028245119017,
+      "trial_id": 182,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 37,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 43,
+        "oversold": 31,
+        "signal_threshold": 0.1967976396087472
+      }
+    },
+    "profit_biased": {
+      "score": 0.8741407911141608,
+      "trial_id": 10,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 664,
+        "entry_drop": 0.7119570981598239,
+        "exit_up": 0.048,
+        "rsi_period": 30,
+        "rsi_max": 27.062411350128276,
+        "atr_period": 35,
+        "atr_mult": 3.3995977442630037,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.8741407911141608,
+      "trial_id": 10,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 664,
+        "entry_drop": 0.7119570981598239,
+        "exit_up": 0.048,
+        "rsi_period": 30,
+        "rsi_max": 27.062411350128276,
+        "atr_period": 35,
+        "atr_mult": 3.3995977442630037,
+        "timeframe_minutes": 5
+      }
+    },
+    "mar": {
+      "score": 892502824.5119017,
+      "trial_id": 182,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 37,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 43,
+        "oversold": 31,
+        "signal_threshold": 0.1967976396087472
+      }
+    },
+    "utility": {
+      "score": 0.5988540815121013,
+      "trial_id": 182,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 37,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 43,
+        "oversold": 31,
+        "signal_threshold": 0.1967976396087472
+      }
+    },
+    "cps": {
+      "score": 80.5,
+      "trial_id": 30,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 754,
+        "entry_drop": 0.47108370984085046,
+        "exit_up": 0.6758666451089398,
+        "rsi_period": 13,
+        "rsi_max": 43.26652479359118,
+        "atr_period": 40,
+        "atr_mult": 3.709496311105087,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2": {
+      "score": 0.8741407911141608,
+      "trial_id": 10,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 664,
+        "entry_drop": 0.7119570981598239,
+        "exit_up": 0.048,
+        "rsi_period": 30,
+        "rsi_max": 27.062411350128276,
+        "atr_period": 35,
+        "atr_mult": 3.3995977442630037,
+        "timeframe_minutes": 5
+      }
+    }
+  }
+}

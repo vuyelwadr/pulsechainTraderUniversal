@@ -1,0 +1,156 @@
+{
+  "next_trial_id": 401,
+  "completed": 400,
+  "total_requests": 400,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 2689.3335735452206,
+      "trial_id": 9,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 576,
+        "entry_drop": 0.34757527230993224,
+        "exit_up": 0.048,
+        "rsi_period": 9,
+        "rsi_max": 32.0,
+        "timeframe_minutes": 5
+      }
+    },
+    "profit_biased": {
+      "score": 0.9166115593206046,
+      "trial_id": 212,
+      "strategy": "GridTradingStrategyV2Pro2",
+      "parameters": {
+        "base_step_pct": 2.6457688949443616,
+        "price_range_pct": 26.0,
+        "num_grids_min": 16,
+        "num_grids_max": 26,
+        "atr_period": 12,
+        "atr_mult_step": 0.65,
+        "atr_mult_range": 13.520001051231935,
+        "vol_floor": 0.012321681329871676,
+        "vol_ceil": 0.14102229073011815,
+        "anchor_tf_minutes": 480,
+        "ema_fast": 15,
+        "ema_slow": 64,
+        "trend_slope_thresh": 0.0005,
+        "allow_with_trend_sells": true,
+        "skew_down": 0.35,
+        "skew_up": 0.15,
+        "z_atr_recenter": 1.5,
+        "rebalance_threshold_pct": 2.0,
+        "cooldown_bars": 4,
+        "fee_bps": 14.517226510904448,
+        "min_edge_bps": 52.84297697361584,
+        "max_position_levels": 8,
+        "min_strength": 0.4293243123755776
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.9166115593206046,
+      "trial_id": 212,
+      "strategy": "GridTradingStrategyV2Pro2",
+      "parameters": {
+        "base_step_pct": 2.6457688949443616,
+        "price_range_pct": 26.0,
+        "num_grids_min": 16,
+        "num_grids_max": 26,
+        "atr_period": 12,
+        "atr_mult_step": 0.65,
+        "atr_mult_range": 13.520001051231935,
+        "vol_floor": 0.012321681329871676,
+        "vol_ceil": 0.14102229073011815,
+        "anchor_tf_minutes": 480,
+        "ema_fast": 15,
+        "ema_slow": 64,
+        "trend_slope_thresh": 0.0005,
+        "allow_with_trend_sells": true,
+        "skew_down": 0.35,
+        "skew_up": 0.15,
+        "z_atr_recenter": 1.5,
+        "rebalance_threshold_pct": 2.0,
+        "cooldown_bars": 4,
+        "fee_bps": 14.517226510904448,
+        "min_edge_bps": 52.84297697361584,
+        "max_position_levels": 8,
+        "min_strength": 0.4293243123755776
+      }
+    },
+    "mar": {
+      "score": 1689333573.5452206,
+      "trial_id": 9,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 576,
+        "entry_drop": 0.34757527230993224,
+        "exit_up": 0.048,
+        "rsi_period": 9,
+        "rsi_max": 32.0,
+        "timeframe_minutes": 5
+      }
+    },
+    "utility": {
+      "score": 0.8125516773356608,
+      "trial_id": 9,
+      "strategy": "CSMARevertStrategy",
+      "parameters": {
+        "n_sma": 576,
+        "entry_drop": 0.34757527230993224,
+        "exit_up": 0.048,
+        "rsi_period": 9,
+        "rsi_max": 32.0,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps": {
+      "score": 90.5,
+      "trial_id": 29,
+      "strategy": "GridTradingStrategyV2Pro",
+      "parameters": {
+        "base_grid_size_percent": 1.798435269000901,
+        "num_grids": 12,
+        "price_range_percent": 26.46905977342438,
+        "min_strength": 0.05116464162359121,
+        "vol_threshold": 0.0,
+        "rebalance_threshold": 0.862018256697626,
+        "anchor_lookback": 46,
+        "atr_period": 12,
+        "step_vol_mult": 2.1862769610584873,
+        "skew_strength": 0.33537476558741625,
+        "zscore_limit": 1.2,
+        "cooldown_bars": 3
+      }
+    },
+    "cps_v2": {
+      "score": 0.9166115593206046,
+      "trial_id": 212,
+      "strategy": "GridTradingStrategyV2Pro2",
+      "parameters": {
+        "base_step_pct": 2.6457688949443616,
+        "price_range_pct": 26.0,
+        "num_grids_min": 16,
+        "num_grids_max": 26,
+        "atr_period": 12,
+        "atr_mult_step": 0.65,
+        "atr_mult_range": 13.520001051231935,
+        "vol_floor": 0.012321681329871676,
+        "vol_ceil": 0.14102229073011815,
+        "anchor_tf_minutes": 480,
+        "ema_fast": 15,
+        "ema_slow": 64,
+        "trend_slope_thresh": 0.0005,
+        "allow_with_trend_sells": true,
+        "skew_down": 0.35,
+        "skew_up": 0.15,
+        "z_atr_recenter": 1.5,
+        "rebalance_threshold_pct": 2.0,
+        "cooldown_bars": 4,
+        "fee_bps": 14.517226510904448,
+        "min_edge_bps": 52.84297697361584,
+        "max_position_levels": 8,
+        "min_strength": 0.4293243123755776
+      }
+    }
+  }
+}

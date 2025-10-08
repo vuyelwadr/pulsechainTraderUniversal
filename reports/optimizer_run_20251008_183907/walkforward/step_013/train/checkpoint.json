@@ -1,0 +1,100 @@
+{
+  "next_trial_id": 201,
+  "completed": 200,
+  "total_requests": 200,
+  "remaining_calls": 0,
+  "best_scores": {
+    "final_balance": {
+      "score": 8346.744332858709,
+      "trial_id": 72,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 26,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 79,
+        "oversold": 30,
+        "signal_threshold": 0.9401673287650338
+      }
+    },
+    "profit_biased": {
+      "score": 0.7209064621036029,
+      "trial_id": 174,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 5.760218447536452,
+        "exit_days": 2.0,
+        "ema_exit_days": 4.336513522907829,
+        "trailing_drawdown_pct": 0.2,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2_profit_biased": {
+      "score": 0.7209064621036029,
+      "trial_id": 174,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 5.760218447536452,
+        "exit_days": 2.0,
+        "ema_exit_days": 4.336513522907829,
+        "trailing_drawdown_pct": 0.2,
+        "timeframe_minutes": 5
+      }
+    },
+    "mar": {
+      "score": 7346744332.858708,
+      "trial_id": 72,
+      "strategy": "Strategy_62_RSIAvgs",
+      "parameters": {
+        "rsi_period": 26,
+        "ma_periods": [
+          5,
+          10,
+          20
+        ],
+        "overbought": 79,
+        "oversold": 30,
+        "signal_threshold": 0.9401673287650338
+      }
+    },
+    "utility": {
+      "score": 3.089156410440663,
+      "trial_id": 174,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 5.760218447536452,
+        "exit_days": 2.0,
+        "ema_exit_days": 4.336513522907829,
+        "trailing_drawdown_pct": 0.2,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps": {
+      "score": 68.46,
+      "trial_id": 174,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 5.760218447536452,
+        "exit_days": 2.0,
+        "ema_exit_days": 4.336513522907829,
+        "trailing_drawdown_pct": 0.2,
+        "timeframe_minutes": 5
+      }
+    },
+    "cps_v2": {
+      "score": 0.7209064621036029,
+      "trial_id": 174,
+      "strategy": "DonchianChampionAggressiveStrategy",
+      "parameters": {
+        "entry_days": 5.760218447536452,
+        "exit_days": 2.0,
+        "ema_exit_days": 4.336513522907829,
+        "trailing_drawdown_pct": 0.2,
+        "timeframe_minutes": 5
+      }
+    }
+  }
+}

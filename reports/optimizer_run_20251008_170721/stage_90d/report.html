@@ -1,0 +1,311 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Optimizer Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        h1, h2, h3 { color: #333; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 1.5rem; }
+        th, td { border: 1px solid #ddd; padding: 0.6rem; text-align: right; }
+        th { background-color: #f2f2f2; }
+        td:first-child, th:first-child { text-align: left; }
+    </style>
+</head>
+<body>
+<h1>Optimizer Run Summary</h1><h2>Top Strategies by Objective</h2><h3>final_balance</h3><table border="1" class="dataframe table table-striped">
+  <thead>
+    <tr style="text-align: right;">
+      <th>trial_id</th>
+      <th>strategy</th>
+      <th>parameters</th>
+      <th>score</th>
+      <th>total_return_pct</th>
+      <th>buy_hold_return_pct</th>
+      <th>buy_hold_max_drawdown_pct</th>
+      <th>max_drawdown_pct</th>
+      <th>cagr_pct</th>
+      <th>sharpe_ratio</th>
+      <th>sortino_ratio</th>
+      <th>total_trades</th>
+      <th>final_balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>CSMARevertStrategy</td>
+      <td>{"entry_drop": false, "exit_up": 0.048, "n_sma": 635, "rsi_max": 40.722479581429226, "rsi_period": 39, "timeframe_minutes": 5}</td>
+      <td>594.045273</td>
+      <td>-40.595473</td>
+      <td>-30.387024</td>
+      <td>-66.008565</td>
+      <td>-63.761452</td>
+      <td>-87.916814</td>
+      <td>0.002637</td>
+      <td>0.002379</td>
+      <td>34</td>
+      <td>594.045273</td>
+    </tr>
+  </tbody>
+</table><h3>profit_biased</h3><table border="1" class="dataframe table table-striped">
+  <thead>
+    <tr style="text-align: right;">
+      <th>trial_id</th>
+      <th>strategy</th>
+      <th>parameters</th>
+      <th>score</th>
+      <th>total_return_pct</th>
+      <th>buy_hold_return_pct</th>
+      <th>buy_hold_max_drawdown_pct</th>
+      <th>max_drawdown_pct</th>
+      <th>cagr_pct</th>
+      <th>sharpe_ratio</th>
+      <th>sortino_ratio</th>
+      <th>total_trades</th>
+      <th>final_balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>CSMARevertStrategy</td>
+      <td>{"entry_drop": false, "exit_up": 0.048, "n_sma": 635, "rsi_max": 40.722479581429226, "rsi_period": 39, "timeframe_minutes": 5}</td>
+      <td>0.148645</td>
+      <td>-40.595473</td>
+      <td>-30.387024</td>
+      <td>-66.008565</td>
+      <td>-63.761452</td>
+      <td>-87.916814</td>
+      <td>0.002637</td>
+      <td>0.002379</td>
+      <td>34</td>
+      <td>594.045273</td>
+    </tr>
+  </tbody>
+</table><h3>cps_v2_profit_biased</h3><table border="1" class="dataframe table table-striped">
+  <thead>
+    <tr style="text-align: right;">
+      <th>trial_id</th>
+      <th>strategy</th>
+      <th>parameters</th>
+      <th>score</th>
+      <th>total_return_pct</th>
+      <th>buy_hold_return_pct</th>
+      <th>buy_hold_max_drawdown_pct</th>
+      <th>max_drawdown_pct</th>
+      <th>cagr_pct</th>
+      <th>sharpe_ratio</th>
+      <th>sortino_ratio</th>
+      <th>total_trades</th>
+      <th>final_balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>CSMARevertStrategy</td>
+      <td>{"entry_drop": false, "exit_up": 0.048, "n_sma": 635, "rsi_max": 40.722479581429226, "rsi_period": 39, "timeframe_minutes": 5}</td>
+      <td>0.148645</td>
+      <td>-40.595473</td>
+      <td>-30.387024</td>
+      <td>-66.008565</td>
+      <td>-63.761452</td>
+      <td>-87.916814</td>
+      <td>0.002637</td>
+      <td>0.002379</td>
+      <td>34</td>
+      <td>594.045273</td>
+    </tr>
+  </tbody>
+</table><h3>mar</h3><table border="1" class="dataframe table table-striped">
+  <thead>
+    <tr style="text-align: right;">
+      <th>trial_id</th>
+      <th>strategy</th>
+      <th>parameters</th>
+      <th>score</th>
+      <th>total_return_pct</th>
+      <th>buy_hold_return_pct</th>
+      <th>buy_hold_max_drawdown_pct</th>
+      <th>max_drawdown_pct</th>
+      <th>cagr_pct</th>
+      <th>sharpe_ratio</th>
+      <th>sortino_ratio</th>
+      <th>total_trades</th>
+      <th>final_balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>CSMARevertStrategy</td>
+      <td>{"entry_drop": false, "exit_up": 0.048, "n_sma": 635, "rsi_max": 40.722479581429226, "rsi_period": 39, "timeframe_minutes": 5}</td>
+      <td>-4.059547e+08</td>
+      <td>-40.595473</td>
+      <td>-30.387024</td>
+      <td>-66.008565</td>
+      <td>-63.761452</td>
+      <td>-87.916814</td>
+      <td>0.002637</td>
+      <td>0.002379</td>
+      <td>34</td>
+      <td>594.045273</td>
+    </tr>
+  </tbody>
+</table><h3>utility</h3><table border="1" class="dataframe table table-striped">
+  <thead>
+    <tr style="text-align: right;">
+      <th>trial_id</th>
+      <th>strategy</th>
+      <th>parameters</th>
+      <th>score</th>
+      <th>total_return_pct</th>
+      <th>buy_hold_return_pct</th>
+      <th>buy_hold_max_drawdown_pct</th>
+      <th>max_drawdown_pct</th>
+      <th>cagr_pct</th>
+      <th>sharpe_ratio</th>
+      <th>sortino_ratio</th>
+      <th>total_trades</th>
+      <th>final_balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>CSMARevertStrategy</td>
+      <td>{"entry_drop": false, "exit_up": 0.048, "n_sma": 635, "rsi_max": 40.722479581429226, "rsi_period": 39, "timeframe_minutes": 5}</td>
+      <td>-0.17716</td>
+      <td>-40.595473</td>
+      <td>-30.387024</td>
+      <td>-66.008565</td>
+      <td>-63.761452</td>
+      <td>-87.916814</td>
+      <td>0.002637</td>
+      <td>0.002379</td>
+      <td>34</td>
+      <td>594.045273</td>
+    </tr>
+  </tbody>
+</table><h3>cps</h3><table border="1" class="dataframe table table-striped">
+  <thead>
+    <tr style="text-align: right;">
+      <th>trial_id</th>
+      <th>strategy</th>
+      <th>parameters</th>
+      <th>score</th>
+      <th>total_return_pct</th>
+      <th>buy_hold_return_pct</th>
+      <th>buy_hold_max_drawdown_pct</th>
+      <th>max_drawdown_pct</th>
+      <th>cagr_pct</th>
+      <th>sharpe_ratio</th>
+      <th>sortino_ratio</th>
+      <th>total_trades</th>
+      <th>final_balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>CSMARevertStrategy</td>
+      <td>{"entry_drop": false, "exit_up": 0.048, "n_sma": 635, "rsi_max": 40.722479581429226, "rsi_period": 39, "timeframe_minutes": 5}</td>
+      <td>38.02</td>
+      <td>-40.595473</td>
+      <td>-30.387024</td>
+      <td>-66.008565</td>
+      <td>-63.761452</td>
+      <td>-87.916814</td>
+      <td>0.002637</td>
+      <td>0.002379</td>
+      <td>34</td>
+      <td>594.045273</td>
+    </tr>
+  </tbody>
+</table><h3>cps_v2</h3><table border="1" class="dataframe table table-striped">
+  <thead>
+    <tr style="text-align: right;">
+      <th>trial_id</th>
+      <th>strategy</th>
+      <th>parameters</th>
+      <th>score</th>
+      <th>total_return_pct</th>
+      <th>buy_hold_return_pct</th>
+      <th>buy_hold_max_drawdown_pct</th>
+      <th>max_drawdown_pct</th>
+      <th>cagr_pct</th>
+      <th>sharpe_ratio</th>
+      <th>sortino_ratio</th>
+      <th>total_trades</th>
+      <th>final_balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>CSMARevertStrategy</td>
+      <td>{"entry_drop": false, "exit_up": 0.048, "n_sma": 635, "rsi_max": 40.722479581429226, "rsi_period": 39, "timeframe_minutes": 5}</td>
+      <td>0.148645</td>
+      <td>-40.595473</td>
+      <td>-30.387024</td>
+      <td>-66.008565</td>
+      <td>-63.761452</td>
+      <td>-87.916814</td>
+      <td>0.002637</td>
+      <td>0.002379</td>
+      <td>34</td>
+      <td>594.045273</td>
+    </tr>
+  </tbody>
+</table><h2>Performance by Timeframe</h2><h3>Stage (90d)</h3><table border="1" class="dataframe table table-striped">
+  <thead>
+    <tr style="text-align: right;">
+      <th>trial_id</th>
+      <th>strategy</th>
+      <th>parameters</th>
+      <th>best_objective</th>
+      <th>best_objective_score</th>
+      <th>total_return_pct</th>
+      <th>buy_hold_return_pct</th>
+      <th>buy_hold_max_drawdown_pct</th>
+      <th>max_drawdown_pct</th>
+      <th>cagr_pct</th>
+      <th>sharpe_ratio</th>
+      <th>sortino_ratio</th>
+      <th>win_rate_pct</th>
+      <th>total_trades</th>
+      <th>profit_factor</th>
+      <th>recovery_factor</th>
+      <th>total_cost_pct</th>
+      <th>avg_cost_per_trade_pct</th>
+      <th>final_balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>CSMARevertStrategy</td>
+      <td>{"entry_drop": false, "exit_up": 0.048, "n_sma": 635, "rsi_max": 40.722479581429226, "rsi_period": 39, "timeframe_minutes": 5}</td>
+      <td>final_balance</td>
+      <td>594.045273</td>
+      <td>-40.595473</td>
+      <td>-30.387024</td>
+      <td>-66.008565</td>
+      <td>-63.761452</td>
+      <td>-87.916814</td>
+      <td>0.002637</td>
+      <td>0.002379</td>
+      <td>58.823529</td>
+      <td>34</td>
+      <td>0.595243</td>
+      <td>-0.636677</td>
+      <td>93.27055</td>
+      <td>2.743251</td>
+      <td>594.045273</td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>
