@@ -92,6 +92,7 @@ def run_optimization(
     extra_windows: Sequence[Tuple[str, Optional[int]]],
     cpu_fraction: float,
     seed: Optional[int] = None,
+    save_trades: bool = False,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """Execute optimisation run, returning completed trials and best score summary."""
     existing_trials = store.load_trials()
@@ -119,6 +120,10 @@ def run_optimization(
     if remaining_calls == 0:
         return existing_trials, best_scores
 
+    trades_dir: Optional[Path] = run_dir / 'trades' if save_trades else None
+    if trades_dir is not None:
+        trades_dir.mkdir(parents=True, exist_ok=True)
+
     tasks: List[TrialConfig] = []
     for idx in range(remaining_calls):
         spec = strategy_specs[idx % len(strategy_specs)]
@@ -134,6 +139,8 @@ def run_optimization(
                 stage_label=stage_label,
                 stage_days=stage_days,
                 extra_windows=extra_windows,
+                save_trades=save_trades,
+                trades_dir=trades_dir,
             )
         )
 

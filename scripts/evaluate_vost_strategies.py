@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional
 
 import numpy as np
 import pandas as pd
@@ -241,6 +241,7 @@ def run_strategy(
     *,
     swap_costs: Dict[str, Dict[int, Dict[str, float]]],
     trade_notional: float,
+    capture_trades: bool = False,
 ) -> Dict:
     enriched = strategy.calculate_indicators(data.copy())
     signals = strategy.generate_signals(enriched)
@@ -254,6 +255,15 @@ def run_strategy(
     price_series = data['price'] if 'price' in data.columns else data['close']
     price_series = price_series.astype(float).reset_index(drop=True)
 
+    timestamp_series: Optional[pd.Series]
+    if 'timestamp' in data.columns:
+        timestamp_series = pd.to_datetime(data['timestamp']).reset_index(drop=True)
+    elif isinstance(data.index, pd.DatetimeIndex):
+        timestamp_series = pd.Series(pd.to_datetime(data.index).to_numpy())
+        timestamp_series = timestamp_series.reset_index(drop=True)
+    else:
+        timestamp_series = None
+
     cash = float(trade_notional)
     tokens = 0.0
     equity_history: List[float] = []
@@ -264,6 +274,8 @@ def run_strategy(
     negative_sum = 0.0
     total_cost_dai = 0.0
     entry_equity: Optional[float] = None
+    open_trade: Optional[Dict[str, Any]] = None
+    trade_log: List[Dict[str, Any]] = [] if capture_trades else []
 
     for i in range(len(signals)):
         price = float(price_series.iloc[i])
@@ -276,8 +288,23 @@ def run_strategy(
             spendable = cash - cost_buy
             if spendable > 0:
                 entry_equity = equity_before
-                tokens = spendable / price
+                tokens_acquired = spendable / price
+                tokens = tokens_acquired
                 cash = 0.0
+                if capture_trades:
+                    open_trade = {
+                        'entry_index': int(i),
+                        'entry_price': price,
+                        'entry_equity_dai': float(entry_equity),
+                        'notional_committed_dai': float(spendable),
+                        'cost_buy_dai': float(cost_buy),
+                        'tokens_acquired': float(tokens_acquired),
+                    }
+                    if timestamp_series is not None:
+                        entry_ts = timestamp_series.iloc[i]
+                        open_trade['entry_time'] = pd.Timestamp(entry_ts).isoformat()
+                else:
+                    open_trade = None
 
         if sell_exec.iloc[i] and tokens > 0:
             notional = tokens * price
@@ -296,6 +323,23 @@ def run_strategy(
                 elif trade_roi < 0:
                     losing_trades += 1
                     negative_sum += trade_roi
+                if capture_trades and open_trade is not None:
+                    open_trade.update(
+                        {
+                            'exit_index': int(i),
+                            'exit_price': price,
+                            'exit_equity_dai': float(exit_equity),
+                            'cost_sell_dai': float(cost_sell),
+                            'proceeds_dai': float(proceeds),
+                            'return_pct': float(trade_roi * 100),
+                            'holding_bars': int(i - open_trade.get('entry_index', i)),
+                        }
+                    )
+                    if timestamp_series is not None:
+                        exit_ts = timestamp_series.iloc[i]
+                        open_trade['exit_time'] = pd.Timestamp(exit_ts).isoformat()
+                    trade_log.append(open_trade)
+                open_trade = None
             entry_equity = None
 
         equity_after = cash + tokens * price
@@ -319,6 +363,23 @@ def run_strategy(
             elif trade_roi < 0:
                 losing_trades += 1
                 negative_sum += trade_roi
+            if capture_trades and open_trade is not None:
+                open_trade.update(
+                    {
+                        'exit_index': int(len(signals) - 1),
+                        'exit_price': float(price),
+                        'exit_equity_dai': float(exit_equity),
+                        'cost_sell_dai': float(cost_sell),
+                        'proceeds_dai': float(proceeds),
+                        'return_pct': float(trade_roi * 100),
+                        'holding_bars': int(len(signals) - 1 - open_trade.get('entry_index', len(signals) - 1)),
+                    }
+                )
+                if timestamp_series is not None:
+                    exit_ts = timestamp_series.iloc[-1]
+                    open_trade['exit_time'] = pd.Timestamp(exit_ts).isoformat()
+                trade_log.append(open_trade)
+            open_trade = None
         entry_equity = None
         equity_history[-1] = cash
 
@@ -356,6 +417,10 @@ def run_strategy(
     total_cost_pct = (total_cost_dai / max(1e-9, trade_notional)) * 100.0
     avg_cost_per_trade_pct = (total_cost_pct / num_trades) if num_trades else 0.0
     buy_hold_return = float(price_series.iloc[-1] / price_series.iloc[0] - 1.0)
+    buy_hold_series = price_series / max(1e-9, float(price_series.iloc[0]))
+    buy_hold_peak = np.maximum.accumulate(buy_hold_series.to_numpy())
+    buy_hold_drawdowns = buy_hold_series.to_numpy() / buy_hold_peak - 1.0
+    buy_hold_max_drawdown = float(buy_hold_drawdowns.min())
 
     if 'timestamp' in data.columns:
         ts = pd.to_datetime(data['timestamp'])
@@ -365,9 +430,10 @@ def run_strategy(
     else:
         duration_days = max(1, int(len(price_series) * 5 / (60 * 24)))
 
-    return {
+    payload = {
         'total_return_pct': total_return * 100,
         'buy_hold_return_pct': buy_hold_return * 100,
+        'buy_hold_max_drawdown_pct': buy_hold_max_drawdown * 100,
         'cagr_pct': cagr * 100,
         'max_drawdown_pct': max_drawdown * 100,
         'sharpe': sharpe,
@@ -393,6 +459,10 @@ def run_strategy(
         'final_balance': float(equity_series.iloc[-1]),
         'initial_balance': float(equity_series.iloc[0]),
     }
+    if capture_trades:
+        payload['trades'] = trade_log
+
+    return payload
 
 
 def format_row(name: str, stats: Dict) -> str:

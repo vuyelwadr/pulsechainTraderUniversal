@@ -152,7 +152,7 @@ def _get_window(label: str, days: Optional[int]) -> pd.DataFrame:
 def _sanitize_stats(stats: Dict[str, Any]) -> Dict[str, Any]:
     summary: Dict[str, Any] = {}
     for key, value in stats.items():
-        if key in ('equity_curve', 'strategy_returns', 'trade_returns'):
+        if key in ('equity_curve', 'strategy_returns', 'trade_returns', 'trades'):
             continue
         if isinstance(value, (np.floating, np.integer)):
             summary[key] = float(value)
@@ -179,6 +179,8 @@ class TrialConfig:
     stage_label: str
     stage_days: Optional[int]
     extra_windows: Sequence[Tuple[str, Optional[int]]]
+    save_trades: bool = False
+    trades_dir: Optional[Path] = None
 
 
 def evaluate_trial(config: TrialConfig) -> Dict[str, Any]:
@@ -191,11 +193,13 @@ def evaluate_trial(config: TrialConfig) -> Dict[str, Any]:
         strategy_cls = resolve_strategy_class(config.strategy_name)
         stage_df = _get_window(config.stage_label, config.stage_days)
         stage_strategy = _instantiate_strategy(strategy_cls, config.parameters)
+        capture_trades = bool(config.save_trades)
         stage_stats = run_strategy(
             stage_strategy,
             stage_df,
             swap_costs=SWAP_COSTS,
             trade_notional=config.trade_size,
+            capture_trades=capture_trades,
         )
 
         objective_scores: Dict[str, Dict[str, Any]] = {}
@@ -212,8 +216,25 @@ def evaluate_trial(config: TrialConfig) -> Dict[str, Any]:
             compounds['score'] = float(compounds.get('score', 0.0))
             objective_scores[objective] = compounds
 
+        trade_logs: Dict[str, Optional[str]] = {}
+        stage_metrics = _sanitize_stats(stage_stats)
+        if capture_trades:
+            trades_payload = stage_stats.get('trades') or []
+            if trades_payload:
+                if config.trades_dir is None:
+                    raise ValueError("Trades directory missing despite save_trades=True.")
+                config.trades_dir.mkdir(parents=True, exist_ok=True)
+                trade_filename = f"trial_{config.trial_id:05d}_{config.stage_label}.csv.gz"
+                trade_path = config.trades_dir / trade_filename
+                pd.DataFrame(trades_payload).to_csv(trade_path, index=False, compression='gzip')
+                relative_path = Path('trades') / trade_filename
+                stage_metrics['trade_log_path'] = str(relative_path)
+                trade_logs[config.stage_label] = str(relative_path)
+            else:
+                trade_logs[config.stage_label] = None
+
         timeframe_metrics: Dict[str, Dict[str, Any]] = {
-            config.stage_label: _sanitize_stats(stage_stats)
+            config.stage_label: stage_metrics
         }
 
         for label, days in config.extra_windows:
@@ -229,6 +250,7 @@ def evaluate_trial(config: TrialConfig) -> Dict[str, Any]:
                 df,
                 swap_costs=SWAP_COSTS,
                 trade_notional=config.trade_size,
+                capture_trades=False,
             )
             timeframe_metrics[label] = _sanitize_stats(window_stats)
 
@@ -240,6 +262,7 @@ def evaluate_trial(config: TrialConfig) -> Dict[str, Any]:
             'trade_size': config.trade_size,
             'objective_scores': objective_scores,
             'timeframe_metrics': timeframe_metrics,
+            'trade_logs': trade_logs if trade_logs else None,
             'elapsed_seconds': elapsed,
             'status': 'ok',
         }

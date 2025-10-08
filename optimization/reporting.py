@@ -24,12 +24,29 @@ def _collect_timeframe_rows(
         metrics = (trial.get('timeframe_metrics') or {}).get(label) or {}
         if not metrics:
             continue
+        best_objective = None
+        best_score = None
+        for objective, payload in (trial.get('objective_scores') or {}).items():
+            score = payload.get('score')
+            if score is None:
+                continue
+            try:
+                score_value = float(score)
+            except (TypeError, ValueError):
+                continue
+            if best_score is None or score_value > best_score:
+                best_score = score_value
+                best_objective = objective
         rows.append(
             {
                 'trial_id': trial['trial_id'],
                 'strategy': trial['strategy'],
                 'parameters': _format_params(trial.get('parameters', {})),
+                'best_objective': best_objective,
+                'best_objective_score': best_score if best_score is not None else 0.0,
                 'total_return_pct': metrics.get('total_return_pct', 0.0),
+                'buy_hold_return_pct': metrics.get('buy_hold_return_pct', 0.0),
+                'buy_hold_max_drawdown_pct': metrics.get('buy_hold_max_drawdown_pct', 0.0),
                 'max_drawdown_pct': metrics.get('max_drawdown_pct', 0.0),
                 'cagr_pct': metrics.get('cagr_pct', 0.0),
                 'sharpe_ratio': metrics.get('sharpe_ratio', metrics.get('sharpe', 0.0)),
@@ -68,6 +85,8 @@ def _collect_objective_rows(
                 'parameters': _format_params(trial.get('parameters', {})),
                 'score': float(obj.get('score', 0.0)),
                 'total_return_pct': stage_metrics.get('total_return_pct', 0.0),
+                'buy_hold_return_pct': stage_metrics.get('buy_hold_return_pct', 0.0),
+                'buy_hold_max_drawdown_pct': stage_metrics.get('buy_hold_max_drawdown_pct', 0.0),
                 'max_drawdown_pct': stage_metrics.get('max_drawdown_pct', 0.0),
                 'cagr_pct': stage_metrics.get('cagr_pct', 0.0),
                 'sharpe_ratio': stage_metrics.get('sharpe_ratio', stage_metrics.get('sharpe', 0.0)),
