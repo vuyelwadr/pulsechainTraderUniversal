@@ -28,6 +28,9 @@ from strategies.trailing_hold_strategy import TrailingHoldStrategy
 from strategies.multiweek_breakout_strategy import MultiWeekBreakoutStrategy
 from strategies.multiweek_breakout_ultra_strategy import MultiWeekBreakoutUltraStrategy
 from strategies.c_sma_revert_strategy import CSMARevertStrategy
+from strategies.codex1_csma_enhanced_strategy import Codex1CSMAEnhancedStrategy
+from strategies.codex1_csma_apex_strategy import Codex1CSMAApexStrategy
+from strategies.codex1_csma_ultra_strategy import Codex1CSMAUltraStrategy
 from strategies.donchian_champion_strategy import (
     DonchianChampionStrategy,
     DonchianChampionAggressiveStrategy,
@@ -66,6 +69,24 @@ STRATEGIES: List[StrategyDef] = [
         'strategies/c_sma_revert_strategy.py',
         'SMA reversion with RSI filter; enters deep dips and exits on mean reversion.',
         CSMARevertStrategy,
+    ),
+    StrategyDef(
+        'Codex1CSMAEnhancedStrategy',
+        'strategies/codex1_csma_enhanced_strategy.py',
+        'Enhanced CSMA variant with RSI<=32 threshold to capture more crash rebounds.',
+        Codex1CSMAEnhancedStrategy,
+    ),
+    StrategyDef(
+        'Codex1CSMAApexStrategy',
+        'strategies/codex1_csma_apex_strategy.py',
+        'Apex CSMA variant that waits for 50% recoveries and trails 30% from highs to lock-in giant rebounds.',
+        Codex1CSMAApexStrategy,
+    ),
+    StrategyDef(
+        'Codex1CSMAUltraStrategy',
+        'strategies/codex1_csma_ultra_strategy.py',
+        'Ultra CSMA variant with staged profit releases and trailing protection to ride deep recoveries longer.',
+        Codex1CSMAUltraStrategy,
     ),
     StrategyDef(
         'DonchianChampionStrategy',

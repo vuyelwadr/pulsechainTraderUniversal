@@ -97,6 +97,11 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 - **Recent windows:** +213.4 % (last 3 months), 0 % (last month; no entry). Demonstrates very fast recovery behaviour with high sensitivity to post-crash rebounds.
 - **Strengths:** Captures deep-dip reversions exceptionally well; only 21 trades over two years (fees manageable compared to gains).
 - **Weaknesses:** Extremely high drawdown tolerance; capital fully deployed in severe sell-offs.
+- **Codex1CSMAApexStrategy (new):**
+  - **File:** `strategies/codex1_csma_apex_strategy.py`.
+  - **Adjustments:** Keeps the same deep-dip entry but holds positions until either a 50 % profit target is reached or price gives back 30 % from the post-entry high.
+  - **Performance:** +8,962.6 % (5 k) / +3,885.1 % (10 k) / +346.4 % (25 k) with max DD −82.1 % and 47 trades. Last 3 months delivered +114 % (two trades); last month 0 trades.
+  - **Takeaway:** Outperforms every existing strategy in the repo on a swap-cost basis while trimming the CSMA drawdown by ~10 percentage points thanks to the trailing-stop failsafe.
 - **Next steps:** Consider optional trailing stops or partial position sizing for risk control.
 
 ### 4.5 DonchianChampion strategies (v1–v4)
@@ -157,7 +162,9 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 
 | Strategy | Total Return | Max DD | Trades | Notes |
 |----------|-------------:|-------:|-------:|-------|
-| CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Deep-dip mean reversion remains top performer |
+| Codex1CSMAApexStrategy | **+8,962.6 %** | −82.1 % | 47 | 50 % profit target plus 30 % trailing drawdown; highest net return with reduced DD vs other CSMA variants |
+| CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Legacy deep-dip mean reversion baseline |
+| Codex1CSMAEnhancedStrategy | +6,282.8 % | −92.2 % | 21 | RSI≤32 tweak captures extra rebounds without extra trades |
 | DonchianChampionDynamicStrategy | +5,434.7 % | −49.4 % | 32 | Champion v5 with ATR+gain-based DD |
 | DonchianChampionAggressiveStrategy | +3,668.3 % | −49.4 % | 34 | Champion v3 with DD=20 % |
 | MultiWeekBreakoutStrategy | +1,557.9 % | −60.6 % | 16 | High return, sits out downtrends |
@@ -169,9 +176,9 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 | PassiveHoldStrategy | +195.7 % | −99.7 % | 1 | Baseline |
 
 ### 5.2 Recent periods (trade size 5 k DAI)
-- **Last 3 months:** CSMARevertStrategy posted +213 %; MultiWeekBreakout stayed flat (0 trades); Donchian variants lost ~−42 % after multiple stop-outs; tight trend follower dipped −4 %.
-- **Last 1 month:** Most systematic strategies, including the tight trend follower and breakout, stayed flat (no trades). Donchian variants logged minor losses (~−10 %); CSMA had no entry.
-- **Interpretation:** The new gating in MultiWeekBreakout eliminates fee leakage during downtrends. Donchian variants need similar gating or regime filters to avoid repeated whipsaws. CSMA excels in volatile recoveries but remains fully exposed during the deepest part of a crash.
+- **Last 3 months:** Codex1CSMAApexStrategy booked +114 % across two trades while CSMARevertStrategy added +213 %; MultiWeekBreakout stayed flat (0 trades); Donchian variants lost ~−42 % after multiple stop-outs; tight trend follower dipped −4 %.
+- **Last 1 month:** Most systematic strategies, including Apex, tight trend follower, and breakout, stayed flat (no trades). Donchian variants logged minor losses (~−10 %); CSMA had no entry.
+- **Interpretation:** The new Apex variant keeps exposure through the early stages of rebounds and still exits when momentum fades, whereas Donchian systems continue to leak in the bear regime. MultiWeekBreakout’s gating still eliminates downtrend churn.
 
 ## 6. Testing Workflow / Commands Summary
 
@@ -231,7 +238,7 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
 ## 9. Roadmap / Next Steps
 
 1. **Further tuning:**
-   - CSMA: add optional trailing stop or risk caps to reduce −92 % DD while preserving deep-reversal gains.
+   - CSMA: monitor the Apex variant’s 50 %/30 % ladder to see if dynamic sizing can trim the 47-trade churn while keeping the 8.9 k % return lead; continue exploring drawdown caps for the legacy CSMA pair.
    - Donchian: add regime/recovery filters akin to the breakout strategy to avoid recent whipsaws.
    - Breakout: experiment with longer-term cross verification or partial allocations to combine with mean reversion.
 2. **Trend follower maintenance:**
@@ -244,6 +251,7 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
 ## 10. Summary
 
 - All strategies now run through the same cost-aware harness with per-step rounding, gas inclusion, and bucket-aware analytics in the CSV/JSON reports.
+- Codex1CSMAApexStrategy (50 % profit target + 30 % trail) now leads the pack at +8,962 % net with better drawdown than the earlier CSMA family while remaining positive across 10 k and 25 k buckets.
 - The repo contains mean-reverting (CSMA, Hybrid V2), breakout (Donchian v1–v5, MultiWeek variants), and trend-following (tight TTF) families, plus baseline holds.
 - `strategy_performance_summary.csv` provides a 3-period snapshot for three trade sizes, enabling quick health checks.
 - Future work will iterate parameters, add the requested tight trend follower, and keep updating this document with findings and best practices.

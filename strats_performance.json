@@ -1,8 +1,8 @@
 [
+  "Codex1CSMAApexStrategy",
+  "Codex1CSMAEnhancedStrategy",
   "CSMARevertStrategy",
   "DonchianChampionDynamicStrategy",
   "DonchianChampionAggressiveStrategy",
-  "MultiWeekBreakoutStrategy",
-  "HybridV2Strategy",
-  "TightTrendFollowStrategy"
+  "MultiWeekBreakoutStrategy"
 ]
