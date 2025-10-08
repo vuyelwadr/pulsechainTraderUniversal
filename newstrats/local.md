@@ -161,12 +161,21 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 | DonchianChampionDynamicStrategy | +5,434.7 % | −49.4 % | 32 | Champion v5 with ATR+gain-based DD |
 | DonchianChampionAggressiveStrategy | +3,668.3 % | −49.4 % | 34 | Champion v3 with DD=20 % |
 | MultiWeekBreakoutStrategy | +1,557.9 % | −60.6 % | 16 | High return, sits out downtrends |
-| HybridV2Strategy | +620.3 % | −95.0 % | 85 | Hybrid mean-revert + breakout combo |
+| MultiWeekBreakoutUltraStrategy | +353.7 % | −53.9 % | 12 | Lower churn alternative; positive across all trade sizes |
 | DonchianChampionStrategy | +587.9 % | −88.0 % | 31 | Good trend capture but high drawdown |
-| TightTrendFollowStrategy | +320.1 % | −47.9 % | 61 | New trend follower ties trades to regime |
-| MultiWeekBreakoutUltraStrategy | +354.3 % | −53.9 % | 12 | Fewer trades, lower cost drag |
+| HybridV2Strategy | +620.3 % | −95.0 % | 85 | Useful research baseline; struggles at high notionals |
+| TightTrendFollowStrategy | +320.1 % | −47.9 % | 61 | Trend follower; neutral-to-negative at larger notionals |
 | TrailingHoldStrategy | +61.5 % | −80.3 % | 1 | Safety net |
 | PassiveHoldStrategy | +195.7 % | −99.7 % | 1 | Baseline |
+
+Runner default (`strats_performance.json`) now includes:
+1. `CSMARevertStrategy`
+2. `DonchianChampionDynamicStrategy`
+3. `DonchianChampionAggressiveStrategy`
+4. `MultiWeekBreakoutStrategy`
+5. `MultiWeekBreakoutUltraStrategy`
+
+Hybrid V2 and Tight Trend Follow remain available for research but are excluded from the runner because they underperform at larger trade sizes.
 
 ### 5.2 Recent periods (trade size 5 k DAI)
 - **Last 3 months:** CSMARevertStrategy posted +213 %; MultiWeekBreakout stayed flat (0 trades); Donchian variants lost ~−42 % after multiple stop-outs; tight trend follower dipped −4 %.

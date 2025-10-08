@@ -21,6 +21,7 @@ from strategies.vost_trend_rider_strategy import VOSTTrendRiderStrategy
 from strategies.vost_breakout_squeeze_strategy import VOSTBreakoutSqueezeStrategy
 from strategies.vost_pullback_accumulator_strategy import VOSTPullbackAccumulatorStrategy
 from strategies.multiweek_breakout_strategy import MultiWeekBreakoutStrategy
+from strategies.multiweek_breakout_ultra_strategy import MultiWeekBreakoutUltraStrategy
 from strategies.long_term_regime_strategy import LongTermRegimeStrategy
 from strategies.passive_hold_strategy import PassiveHoldStrategy
 from strategies.macro_trend_channel_strategy import MacroTrendChannelStrategy
@@ -97,7 +98,7 @@ def run_strategy(
     strategy,
     data: pd.DataFrame,
     *,
-    swap_costs: Dict[int, float],
+    swap_costs: Dict[str, Dict[int, Dict[str, float]]],
     trade_notional: float,
 ) -> Dict:
     enriched = strategy.calculate_indicators(data.copy())
@@ -246,6 +247,7 @@ def main() -> None:
         ('HybridV2', HybridV2Strategy()),
         ('TightTrendFollow', TightTrendFollowStrategy()),
         ('MultiWeekBreakout', MultiWeekBreakoutStrategy()),
+        ('MultiWeekBreakoutUltra', MultiWeekBreakoutUltraStrategy()),
         ('VOSTTrendRider', VOSTTrendRiderStrategy()),
         ('VOSTBreakoutSqueeze', VOSTBreakoutSqueezeStrategy()),
         ('VOSTPullbackAccumulator', VOSTPullbackAccumulatorStrategy()),
