@@ -78,7 +78,8 @@ class MacroTrendChannelStrategy(BaseStrategy):
                 strong_trend = ma_gap[i] >= entry_buffer and ma_fast[i] > ma_slow[i]
                 if strong_trend:
                     buy_flags[i] = True
-                    strength[i] = min(1.0, ma_gap[i] / (entry_buffer * 1.5))
+                    denom = max(abs(entry_buffer), 1e-9) * 1.5
+                    strength[i] = min(1.0, ma_gap[i] / denom)
                     in_position = True
                     entry_index = i
                     peak_price = price[i]
@@ -99,4 +100,3 @@ class MacroTrendChannelStrategy(BaseStrategy):
         df['signal_strength'] = strength
 
         return df
-

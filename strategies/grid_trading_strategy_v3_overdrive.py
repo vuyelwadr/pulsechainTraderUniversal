@@ -83,13 +83,13 @@ class GridTradingStrategyV3Overdrive(GridTradingStrategyV2Pro, BaseStrategy):
             tp = (df['high'] + df['low'] + df['close']) / 3.0
             vol_anchor = ((tp * df['volume']).rolling(window=slow_n, min_periods=3).sum() /
                 (df['volume'].rolling(window=slow_n, min_periods=3).sum().replace(0, np.nan)))
-            df['anchor_volume'] = vol_anchor.fillna(method='bfill').fillna(df['anchor_slow'])
+            df['anchor_volume'] = vol_anchor.bfill().fillna(df['anchor_slow'])
         else:
             df['anchor_volume'] = df['anchor_slow']
 
         df['anchor_combo'] = (
             df['anchor_fast'] * 0.4 + df['anchor_slow'] * 0.4 + df['anchor_volume'] * 0.2
-        ).fillna(method='bfill').fillna(price)
+        ).bfill().fillna(price)
 
         # Store latest anchor for grid rebuilding downstream
         self._combo_anchor = float(df['anchor_combo'].iloc[-1])

@@ -122,7 +122,7 @@ class GridTradingStrategyV2Pro(BaseStrategy):
             (low - prev_close).abs()
         ], axis=1).max(axis=1)
         atr = tr.rolling(max(1, int(period))).mean()
-        return atr.fillna(method="bfill").fillna(0.0)
+        return atr.bfill().fillna(0.0)
 
     @staticmethod
     def _zscore(x: pd.Series, lookback: int) -> pd.Series:

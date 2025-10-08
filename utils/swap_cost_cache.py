@@ -165,6 +165,7 @@ class SwapCostCache:
         *,
         producer: bool = False,
         initial_target: Decimal = Decimal("100000"),
+        step_notional: Optional[Union[Decimal, float, int]] = None,
     ) -> None:
         self.run_dir = Path(run_dir).resolve()
         self.run_dir.mkdir(parents=True, exist_ok=True)
@@ -172,8 +173,11 @@ class SwapCostCache:
         self.request_log_path = self.run_dir / REQUEST_LOG_NAME
         self.config = config or Config()
         self.producer = producer
-        self.step = STEP_NOTIONAL
-        self.step_int = int(STEP_NOTIONAL)
+        step_value = _to_decimal(step_notional) if step_notional is not None else STEP_NOTIONAL
+        if step_value <= 0:
+            raise SwapCostCacheError(f"step_notional must be positive; got {step_value}")
+        self.step = step_value
+        self.step_int = int(self.step.to_integral_value(rounding=ROUND_UP))
         self.initial_target = initial_target
         self._lock = threading.RLock()
         self._wake_event = threading.Event()
@@ -565,6 +569,7 @@ def initialize_swap_cost_cache(
     *,
     producer: bool,
     initial_target: Decimal = Decimal("100000"),
+    step_notional: Optional[Union[Decimal, float, int]] = None,
 ) -> SwapCostCache:
     """Initialise the swap cost cache singleton."""
     global _CACHE_INSTANCE
@@ -575,6 +580,7 @@ def initialize_swap_cost_cache(
                 config=Config(),
                 producer=producer,
                 initial_target=initial_target,
+                step_notional=step_notional,
             )
         else:
             # Update target if necessary; keep existing instance.
@@ -593,7 +599,13 @@ def get_swap_cost_cache() -> SwapCostCache:
                 "SWAP_COST_CACHE_DIR not set; initialise swap cost cache first"
             )
         producer = os.environ.get("SWAP_COST_CACHE_PRODUCER", "0") == "1"
-        initialize_swap_cost_cache(run_dir, producer=producer)
+        step_env = os.environ.get("SWAP_COST_CACHE_STEP")
+        step_value = _to_decimal(step_env) if step_env else None
+        initialize_swap_cost_cache(
+            run_dir,
+            producer=producer,
+            step_notional=step_value,
+        )
     return _CACHE_INSTANCE
 
 
@@ -604,4 +616,6 @@ def ensure_worker_cache_initialized() -> None:
         raise SwapCostCacheError(
             "SWAP_COST_CACHE_DIR not set in worker environment"
         )
-    initialize_swap_cost_cache(run_dir, producer=False)
+    step_env = os.environ.get("SWAP_COST_CACHE_STEP")
+    step_value = _to_decimal(step_env) if step_env else None
+    initialize_swap_cost_cache(run_dir, producer=False, step_notional=step_value)

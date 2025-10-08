@@ -93,18 +93,18 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 - **Source inspiration:** `newstrats/strategy_c_sma_revert.py`
 - **Parameters:** `n_sma=576`, `entry_drop=0.25`, `exit_up=0.048`, `rsi_period=14`, `rsi_max=32`.
 - **Logic:** When price falls 25 % below the 2-day SMA and RSI≤32, go long; exit when price rebounds 5 % above SMA. No trailing; signals are strictly long-flat.
-- **Performance (5 k DAI, bucket-based costs):** +6,282.8 % total, 21 trades, max DD −92.2 %, Sharpe 2.32. (`Codex1` RSI relax in PR `improve-strategies-for-optimal-performance-8afqwy` added ~256 pp net gain across all buckets.)
-- **Recent windows:** +213.4 % (last 3 months), 0 % (last month; no entry). Demonstrates very fast recovery behaviour with high sensitivity to post-crash rebounds.
+- **Performance (bucket-based costs):** +1,552.5 % (5 k), +870.6 % (10 k), +335.9 % (25 k); 21 trades, max DD −92.2 %, Sharpe 1.88.
+- **Recent windows:** +160.0 % (last 3 months), 0 % (last month; no entry). Demonstrates very fast recovery behaviour with high sensitivity to post-crash rebounds.
 - **Strengths:** Captures deep-dip reversions exceptionally well; only 21 trades over two years (fees manageable compared to gains).
 - **Weaknesses:** Extremely high drawdown tolerance; capital fully deployed in severe sell-offs.
 - **Next steps:** Consider optional trailing stops or partial position sizing for risk control.
-- **External PR check:** `CSMARevertDynamicCodex1Strategy` (branch `improve-strategies-for-optimal-performance-1bc034`) posted +1,023 % / +897 % / +625 % with max DD ≈−69 %; useful as a low-trade research variant but still far below the base CSMA and Donchian leaders, so not registered.
+- **External PR check:** `CSMARevertDynamicCodex1Strategy` (branch `improve-strategies-for-optimal-performance-1bc034`) now clocks +351 % / +266 % / +146 % (5 k/10 k/25 k) with max DD ≈−69 %; still useful as a low-trade research variant but far below the base CSMA once dynamic costs are applied, so not registered.
 
 ### 4.4b CSMARevertPro1Strategy (codex bundle)
 - **File:** `strategies/c_sma_revert_pro1_strategy.py`
 - **Parameters:** `n_sma=576`, `entry_drop=0.30`, `exit_up=0.07`, `rsi_period=21`, `rsi_max=35`, `rsi_exit=65`, `trail_pct=0.20`, `cooldown_bars=1440`, `min_hold_bars=288`, plus ATR/drawdown gating.
 - **Logic:** Engage only during deep crashes (≥65 % drawdown, ATR/price ≥1.5 %), hold until SMA rebound or RSI relief, and enforce long cooldowns. Reduces trade count from 21 to ~4, improving scalability for 10–25 k buckets.
-- **Performance (bucket view):** +298 % (5 k), +271 % (10 k), +209 % (25 k); kept out of the default runner but useful when fee budget favours ultra-low churn.
+- **Performance (bucket view):** +167 % (5 k), +134 % (10 k), +74 % (25 k); kept out of the default runner but useful when fee budget favours ultra-low churn.
 - **Runner research:** `newstrats/RESULTS_BUNDLE_V7/` and `newstrats/RESULTS_BUNDLE_V8/` capture constant-runner experiments (10 % and 15 % tail positions). The base bot currently assumes full-size entries/exits, so partial runners are parked as research until the execution engine supports fractional position rebalancing under the bucketed cost model.
 
 ### 4.5 DonchianChampion strategies (v1–v4)
@@ -112,27 +112,26 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 - **Champion v1 (DonchianChampionStrategy):**
   - Entry = break of prior 11-day high (11×288 bars). Exit requires prior 2-day low AND close < EMA(3-day).
   - Matches `newstrats/best_11d2d_exitEMA3d_blotter_agent2.csv` exactly once per-side gas addition is included.
-  - Performance (5 k DAI): +587.9 %, 31 trades, Sharpe 1.59, max DD −88.0 %.
+  - Performance (5 k DAI): +152.5 %, 31 trades, Sharpe 1.14, max DD −91.2 %.
   - Recent windows: last 3 months −46.2 %, last month −10.8 %. The strategy is still active in choppy downtrends and therefore leaks fees.
 - **Champion v3 (DonchianChampionAggressiveStrategy with DD=20 %):**
   - Same entry/exit as v1 plus a **20 %** peak-to-trough trailing stop (updated from 25 %).
-  - Performance (5 k DAI): +3,668.3 %, Sharpe 2.54, max DD −49.4 %, trades 34.
+  - Performance (5 k DAI): +374.6 %, Sharpe 1.33, max DD −74.1 %, trades 34.
   - Recent windows: last 3 months −42.4 %, last month −10.8 %; still exposed to downtrend churn but the tighter stop improves full-period profit dramatically.
 - **Champion v5 (DonchianChampionDynamicStrategy):**
   - Defaults now align with the v11/v12 sweep (`dd_base=0.13`, `dd_k=0.62`, `gain_weight=0.10`, `entry_days=12`), still using the **ATR-ratio-driven dynamic drawdown with gain loosening:** `dd_t = clip(dd_base + k × ATR_ratio + w × max(0, gain), dd_min, dd_max)`.
-  - Performance (bucket-based costs): **+7,288.5 %** (5 k), **+4,099.8 %** (10 k), **+832.2 %** (25 k); Sharpe improves to 2.90 and full-period max DD tightens to −44.3 %. This is a +34 % lift over the prior defaults at every bucket (see `newstrats/strategy_v11_bundle/` and `newstrats/strategy_v12_bundle/` for the raw grids and blotters).
-  - Recent windows: last 3 months −32.2 % (5 trades), last month −11.0 %; still whipsaw-prone during persistent downtrends, so regime gating remains on the backlog.
-- **Strengths:** Champion v5 now tops every bucket (5 k/10 k/25 k) while keeping drawdown under 45 %, so it replaces the older defaults in both the runner and analytics. Champion v3 stays in rotation as the lower-variance fallback when a fixed 20 % trail is preferable.
+  - Performance (bucket-based costs): **+449.2 %** (5 k), **+187.1 %** (10 k), **+20.8 %** (25 k); Sharpe 1.39 with max DD −76.9 %. This still beats all PR proposals once costs are applied (see `newstrats/strategy_v11_bundle/` and `newstrats/strategy_v12_bundle/` for the raw grids and blotters).
+  - Recent windows: last 3 months −34.0 % (5 trades), last month −10.5 %; still whipsaw-prone during persistent downtrends, so regime gating remains on the backlog.
+- **Strengths:** Champion v5 remains top-three overall and is the best Donchian variant once dynamic costs are applied. Champion v3 stays in rotation as the lower-variance fallback when a fixed 20 % trail is preferable.
 - **Weaknesses:** Both Donchian variants still churn during prolonged HEX downtrends; adding macro EMA slope gating is still on the backlog.
-- **External PR check:** The `codex/improve-strategies-for-optimal-performance` branch proposed `dd_base=0.14`, `dd_k=0.50`, `gain_weight=0.12`, `dd_max=0.40`. Cost-aware replays showed +7,148 % / +4,021 % / +815 % (5 k/10 k/25 k) with deeper drawdowns (−47 % to −62 %) versus our v11 defaults (+7,289 % / +4,100 % / +832 %, max DD −44 %). Logged the drop in `newstrats/pr_drops/improve_strategies_for_optimal_performance/` and kept the superior v11 tuning.
-- **External PR check:** `DonchianChampionSupremeCodex1Strategy` (branch `improve-strategies-for-optimal-performance-1bc034`) matches the first PR’s performance (≈+7,232 % at 5 k) but still trails our v11 defaults by 40–60 pp across buckets, so it remains archived for reference only (`newstrats/pr_drops/improve_strategies_for_optimal_performance-1bc034/`).
+- **External PR check:** The `codex/improve-strategies-for-optimal-performance` branch (`dd_base=0.14`, `dd_k=0.50`, `gain_weight=0.12`, `dd_max=0.40`) sums to +312.8 % / +138.5 % / −6.7 % (5 k/10 k/25 k) with deeper drawdowns, so we keep the v11 tuning. `DonchianChampionSupremeCodex1Strategy` lands at +444.7 % / +186.4 % / +20.3 %—close at 5 k but notably weaker at scale—so it stays archived for reference (`newstrats/pr_drops/improve_strategies_for_optimal_performance-1bc034/`).
 
 ### 4.6 HybridV2Strategy (new)
 - **File:** `strategies/hybrid_v2_strategy.py`
 - **Logic:** Combines two modes:
   - **Mean-reversion:** buy deep dips below SMA(576) when RSI≤30; exit on adaptive SMA overshoot or max-hold.
   - **Trend breakout:** when EMA(96)>EMA(288) with positive slope and gap≥0.012, buy on Donchian(96) breakout and trail 22 %.
-- **Performance (5 k DAI, bucket-based costs):** +620.3 %, max DD −95 %, trades 85. Acts as a bridge between CSMA deep-dip entries and trend riding.
+- **Performance (5 k DAI, bucket-based costs):** +112.5 %, max DD −95 %, trades 85. Acts as a bridge between CSMA deep-dip entries and trend riding.
 - **Next steps:** explore risk filters to trim the extreme drawdown while preserving average trade quality.
 
 ### 4.7 MultiWeekBreakoutStrategy (optimised version)
@@ -141,20 +140,20 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 - **Logic:**
   - Entry requires break of 3.5-week high + volume filter + regime fastEMA>slowEMA + 10-day drawup ≥ 10 % + short-term drawdown ≥ −70 %.
   - Exit on break of 2-day low with EMA confirmation or 26 % trailing stop.
-- **Performance:** +1,560.6 % (5 k) / +1,150.8 % (10 k) / +488.5 % (25 k), with 0 trades in last 3 months and 1 month → zero return but avoided the −30 % / −21 % buy-and-hold drops.
+- **Performance:** +743.0 % (5 k) / +432.6 % (10 k) / +157.5 % (25 k); 0 trades in the last 3 months and 1 month → zero return but avoided the −30 % / −21 % buy-and-hold drops.
 - **Strengths:** Extremely high full-period performance while skipping recent downtrend.
 - **Weaknesses:** No positions during downtrends by design; if user wants partial exposure, pair with mean-revert or trailing-hold.
 
 ### 4.8 TightTrendFollowStrategy (new)
 - **File:** `strategies/tight_trend_follow_strategy.py`
 - **Logic:** Uptrend regime requires `close > EMA(1d) > EMA(3d) > EMA(10d)` **and** positive EMA(1d) slope. Entry when uptrend holds and price breaks the previous 12-day high. Exit on 2-day-low break, regime breakdown, or 25 % trailing drawdown.
-- **Performance (5 k DAI):** +320.1 % total, Sharpe 1.41, max DD −47.9 %, 61 trades. Recent windows: −4.0 % (last 3 months), 0 % (last month; no entry).
+- **Performance (5 k DAI):** +21.9 % total, Sharpe 0.50, max DD −72.1 %, 61 trades. Recent windows: −17.3 % (last 3 months), −4.0 % (last month).
 - **Use case:** Pure trend follower that quickly exits when momentum fades; intended to complement mean-revert and breakout modules.
 
 ### 4.9 MultiWeekBreakoutUltraStrategy
 - **File:** `strategies/multiweek_breakout_ultra_strategy.py`
 - **Parameters:** 8-week breakout, 4-day confirm/exit, 28 % trail, 12 trades.
-- **Performance (5 k DAI):** +354.3 %, Sharpe 1.42, max DD −53.9 %.
+- **Performance (5 k DAI):** +233.4 %, Sharpe 1.20, max DD −54.2 %.
 - **Use case:** More conservative alternative for larger trade sizes (performs better than the default breakout when notional is 25 k DAI due to lower trade count).
 
 ### 4.10 VOST Trend/Momentum Strategies
@@ -167,16 +166,15 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 
 | Strategy | Total Return | Max DD | Trades | Notes |
 |----------|-------------:|-------:|-------:|-------|
-| DonchianChampionDynamicStrategy | +7,288.5 % | −44.3 % | 32 | v5 defaults (`dd_base=0.13`, `dd_k=0.62`) now lead every bucket |
-| CSMARevertStrategy | +6,282.8 % | −92.2 % | 21 | Deep-dip mean reversion; RSI≤32 tweak adds ~256 pp without altering drawdown |
-| DonchianChampionAggressiveStrategy | +3,668.3 % | −49.4 % | 34 | Fixed 20 % trail; slightly lower return but steadier than v1 |
-| MultiWeekBreakoutStrategy | +1,557.9 % | −60.6 % | 16 | High-return breakout that fully avoids recent downtrend fees |
-| HybridV2Strategy | +620.3 % | −95.0 % | 85 | Research combo of reversion + breakout; keep out of runner for now |
-| MultiWeekBreakoutUltraStrategy | +353.7 % | −53.9 % | 12 | Low-trade breakout, better scaling for 25 k bucket |
-| DonchianChampionStrategy | +587.9 % | −88.0 % | 31 | Legacy v1 baseline; high drawdown and fee leakage in chop |
-| TightTrendFollowStrategy | +320.1 % | −47.9 % | 61 | Trend follower; flat-to-negative for larger trade sizes |
-| TrailingHoldStrategy | +61.5 % | −80.3 % | 1 | Safety net to cap catastrophic collapse |
-| PassiveHoldStrategy | +195.7 % | −99.7 % | 1 | HEX buy-and-hold benchmark |
+| CSMARevertStrategy | +1,552.5 % | −92.2 % | 21 | Deep-dip mean reversion; recovery workhorse after dynamic costs |
+| MultiWeekBreakoutStrategy | +743.0 % | −58.0 % | 16 | High-return breakout that skipped the recent downtrend |
+| DonchianChampionDynamicStrategy | +449.2 % | −76.9 % | 32 | v5 defaults remain the best Donchian option |
+| DonchianChampionAggressiveStrategy | +374.6 % | −74.1 % | 34 | Fixed 20 % trail; solid backup for Donchian |
+| MultiWeekBreakoutUltraStrategy | +233.4 % | −54.2 % | 12 | Lower-trade breakout suitable for larger buckets |
+| CSMARevertPro1Strategy | +167.0 % | −93.7 % | 4 | Crash-only variant for high-cost buckets |
+| TightTrendFollowStrategy | +21.9 % | −72.1 % | 61 | Trend follower; needs gating to curb recent bleed |
+| TrailingHoldStrategy | +64.4 % | −80.0 % | 1 | Safety net to cap catastrophic collapse |
+| PassiveHoldStrategy | +186.6 % | −99.7 % | 1 | HEX buy-and-hold benchmark |
 
 Runner default (`strats_performance.json`) now includes:
 1. `CSMARevertStrategy`
@@ -188,14 +186,14 @@ Runner default (`strats_performance.json`) now includes:
 Hybrid V2 and Tight Trend Follow remain available for research but are excluded from the runner because they underperform at larger trade sizes.
 
 ### 5.2 Recent periods (trade size 5 k DAI)
-- **Last 3 months:** CSMARevertStrategy delivered +211 % (2 trades, max DD −9.9 %), while Donchian Champion variants gave back −32 % to −39 % across five stop-outs each. MultiWeekBreakout and Ultra sat flat (no trades) and TightTrendFollow bled −17 % over six trades.
-- **Last 1 month:** Most systems stayed inactive (CSMA, both breakouts at 0 trades). Donchian Champion dynamic logged −11 % on a single failed breakout; TightTrendFollow slipped −4 %.
+- **Last 3 months:** CSMARevertStrategy delivered +160 % (2 trades, max DD −9.9 %), while Donchian Champion variants gave back roughly −34 % across five stop-outs each. MultiWeekBreakout and Ultra sat flat (0 trades) and TightTrendFollow bled −17 % over six trades.
+- **Last 1 month:** Most systems stayed inactive (CSMA, both breakouts at 0 trades). Donchian Champion dynamic logged −10.5 % on a single failed breakout; TightTrendFollow slipped −4 %.
 - **Interpretation:** MultiWeekBreakout’s regime filters continue to eliminate fee leakage in downtrends. Donchian variants remain the next optimisation target—regime gating or macro filters should prevent repeated stop-outs when HEX grinds lower. CSMA remains the rapid-recovery specialist but needs portfolio-level risk caps because of its deep historical drawdown.
 
 ### 5.3 External PR drops (Oct 8 2025)
-- `codex/improve-strategies-for-optimal-performance`: tuned Donchian defaults to (`dd_base=0.14`, `dd_k=0.50`, `gain_weight=0.12`, `dd_max=0.40`). Archived metrics (+7,148 % at 5 k) but kept v11 defaults that deliver +7,289 % and marginally tighter drawdowns.
-- `codex/improve-strategies-for-optimal-performance-1bc034`: introduced `CSMARevertDynamicCodex1Strategy` (+1,024 % at 5 k, −68 % DD) and `DonchianChampionSupremeCodex1Strategy` (+7,232 % at 5 k). Logged both; only change adopted locally is the shared RSI relaxation (CSMA now uses `rsi_max=32`).
-- `codex/improve-strategies-for-optimal-performance-8afqwy`: supplied additional CSMA variants (`Codex1CSMAEnhanced`, `Codex1CSMATurbo`, `Codex1Phoenix`, `Codex1RecoveryTrend`). Enhanced variant informed the RSI tweak; Turbo and Phoenix underperformed (−12 % and +48 % respectively at 5 k) and Recovery Trend suffered −95 % drawdown, so they remain research-only.
+- `codex/improve-strategies-for-optimal-performance`: tuned Donchian defaults to (`dd_base=0.14`, `dd_k=0.50`, `gain_weight=0.12`, `dd_max=0.40`). With dynamic costing the best run landed at +313 % / +139 % / −7 % (5 k/10 k/25 k), so v11 remains ahead.
+- `codex/improve-strategies-for-optimal-performance-1bc034`: introduced `CSMARevertDynamicCodex1Strategy` (+351 % / +266 % / +146 %) and `DonchianChampionSupremeCodex1Strategy` (+445 % / +186 % / +20 %). Logged both; only change adopted locally is the shared RSI relaxation (CSMA now uses `rsi_max=32`).
+- `codex/improve-strategies-for-optimal-performance-8afqwy`: supplied additional CSMA variants (`Codex1CSMAEnhanced`, `Codex1CSMATurbo`, `Codex1Phoenix`, `Codex1RecoveryTrend`). Enhanced variant informed the RSI tweak; Turbo and Phoenix underperformed (−12 % and +48 % respectively at 5 k) and Recovery Trend still suffered ~−95 % drawdown, so they remain research-only.
 
 ## 6. Testing Workflow / Commands Summary
 
@@ -209,6 +207,17 @@ python scripts/evaluate_vost_strategies.py --trade-size 25000
 
 # Export CSV with full/last3m/last1m metrics
 python scripts/export_strategy_performance_csv.py
+
+# Fetch latest swap-cost cache into data/ (rate-limited batches of 8 requests/minute)
+python scripts/fetch_swap_cost_cache.py --max-notional 100000 --step 5000 --print-progress
+
+# Fast optimizer (new pipeline) — example 1y stage sanity run
+python -m optimization.runner_cli \
+  --strategies-file strats_performance.json \
+  --objectives final_balance,profit_biased,cps_v2 \
+  --calls 50 \
+  --trade-size 5000 \
+  --stage 1y
 
 # Verify Donchian Champion v1 trades against the newstrats blotter
 python - <<'PY'
@@ -268,12 +277,14 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
 4. **Automation:** wrap the current evaluation + CSV export in a Makefile or shell script to speed up iteration.
 5. **Commit workflow:** when integrating remote bundles, `git commit` first to archive the raw drop, then re-run the local benchmarking and commit the integration with key metrics (e.g., full-period return %, max DD) captured in the commit body.
 6. **Logging:** maintain change logs for each strategy inside this `local.md` as tuning progresses.
+7. **Optimizer overhaul:** the new runner (`optimization.runner_cli`) now uses an in-memory evaluator + JSONL persistence and writes reports under `reports/optimizer_top_top_strats_run/`. Resume runs via `--resume-from <run_dir>`. All runs expect `data/swap_cost_cache.json`; refresh via `scripts/fetch_swap_cost_cache.py`.
 
 ## 10. Summary
 
-- DonchianChampionDynamicStrategy now runs with the v11/v12 defaults (`dd_base=0.13`, `dd_k=0.62`), improving net return by ~34 % across all trade-size buckets (7,288 % @ 5 k).
-- CSMARevertStrategy inherits the Codex1 RSI relaxation (`rsi_max=32`), lifting the 5 k bucket to +6,283 % (previously +6,027 %) while leaving trade count and drawdown unchanged.
+- DonchianChampionDynamicStrategy now runs with the v11/v12 defaults (`dd_base=0.13`, `dd_k=0.62`), posting +449 % / +187 % / +21 % (5 k/10 k/25 k) once dynamic costs are applied.
+- CSMARevertStrategy inherits the Codex1 RSI relaxation (`rsi_max=32`), landing at +1,552 % / +871 % / +336 % (5 k/10 k/25 k) with the new dynamic cost model.
 - All strategies now run through the same cost-aware harness with per-step rounding, gas inclusion, and bucket-aware analytics in the CSV/JSON reports.
 - The repo contains mean-reverting (CSMA, Hybrid V2), breakout (Donchian v1–v5, MultiWeek variants), and trend-following (tight TTF) families, plus baseline holds.
 - `strategy_performance_summary.csv` provides a 3-period snapshot for three trade sizes, enabling quick health checks.
+- Fast optimiser pipeline rewritten (see `tasks/optimizer_overhaul.md`): dataset/swap-cost caching, resumable JSONL trial log, per-objective/per-period CSV + HTML, and high-CPU parallel evaluation. Use the new CLI or supporting modules instead of the legacy `optimization/runner.py`.
 - Future work will iterate parameters, add the requested tight trend follower, and keep updating this document with findings and best practices.

@@ -136,7 +136,7 @@ class GridTradingStrategyV2Pro2(BaseStrategy):
     def _atr(df: pd.DataFrame, period: int) -> pd.Series:
         hi, lo, cl = df['high'], df['low'], df['close']
         tr = np.maximum(hi - lo, np.maximum((hi - cl.shift(1)).abs(), (lo - cl.shift(1)).abs()))
-        return tr.rolling(period, min_periods=max(2, period//2)).mean().fillna(method='bfill')
+        return tr.rolling(period, min_periods=max(2, period//2)).mean().bfill()
 
     @staticmethod
     def _ema(x: pd.Series, span: int) -> pd.Series:

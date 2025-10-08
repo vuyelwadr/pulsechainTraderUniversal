@@ -62,7 +62,7 @@ class MomentumRegimeV3Fusion(TMCCCBCIHybridStrategy, BaseStrategy):
         df['kama_fast'] = kama
         df['kama_slow'] = kama_slow_val
 
-        atr = df['atr'] if 'atr' in df.columns else price.rolling(int(p['atr_len'])).std().fillna(method='bfill')
+        atr = df['atr'] if 'atr' in df.columns else price.rolling(int(p['atr_len'])).std().bfill()
         df['breakout_trigger'] = kama + 1.5 * atr.rolling(kama_fast, min_periods=1).mean().fillna(atr)
 
         # OBV + acceleration

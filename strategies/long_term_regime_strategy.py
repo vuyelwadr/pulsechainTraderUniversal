@@ -85,7 +85,8 @@ class LongTermRegimeStrategy(BaseStrategy):
                 bullish = ema_short[i] >= ema_long[i] * (1 + entry_buffer) and ema_gap[i] > 0
                 if bullish:
                     buy_flags[i] = True
-                    strength[i] = min(1.0, ema_gap[i] / (entry_buffer * 2))
+                    denom = max(abs(entry_buffer), 1e-9) * 2
+                    strength[i] = min(1.0, ema_gap[i] / denom)
                     in_position = True
                     entry_index = i
                     peak_price = price[i]
@@ -107,4 +108,3 @@ class LongTermRegimeStrategy(BaseStrategy):
         df['signal_strength'] = strength
 
         return df
-

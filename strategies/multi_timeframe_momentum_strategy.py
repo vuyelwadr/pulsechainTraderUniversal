@@ -235,10 +235,13 @@ class MultiTimeframeMomentumStrategy(BaseStrategy):
             
             for col in htf_columns:
                 if col in htf_row and not pd.isna(htf_row[col]):
-                    df.iloc[start_idx:end_idx, df.columns.get_loc(col)] = htf_row[col]
-        
+                    value = htf_row[col]
+                    if isinstance(value, bool):
+                        value = float(value)
+                    df.iloc[start_idx:end_idx, df.columns.get_loc(col)] = value
+
         # Forward fill any remaining NaN values
-        df[htf_columns] = df[htf_columns].fillna(method='ffill')
+        df[htf_columns] = df[htf_columns].ffill().infer_objects(copy=False)
         
         return df
     

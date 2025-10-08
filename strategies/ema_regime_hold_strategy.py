@@ -89,7 +89,8 @@ class EMATrendHoldStrategy(BaseStrategy):
                 bullish = ema_spread[i] >= spread_confirm and ema_slope[i] > 0
                 if bullish:
                     buy_flags[i] = True
-                    strength[i] = min(1.0, ema_spread[i] / (spread_confirm * 2))
+                    denom = max(abs(spread_confirm), 1e-9) * 2
+                    strength[i] = min(1.0, ema_spread[i] / denom)
                     in_position = True
                     peak_price = price[i]
                     entry_index = i

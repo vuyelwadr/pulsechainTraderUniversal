@@ -127,96 +127,27 @@ def evaluate_strategy(
     swap_costs: Dict[str, Dict[int, Dict[str, float]]],
     trade_notional: float,
 ) -> Dict[str, float]:
-    """Run strategy and compute detailed metrics, including explicit cost accounting."""
+    from scripts.evaluate_vost_strategies import run_strategy as eval_run_strategy
 
-    enriched = strategy.calculate_indicators(data.copy())
-    signals = strategy.generate_signals(enriched)
-
-    buy_signal = signals.get('buy_signal', pd.Series(False, index=signals.index)).astype(bool)
-    sell_signal = signals.get('sell_signal', pd.Series(False, index=signals.index)).astype(bool)
-
-    # Align execution (execute on bar after signal)
-    buy_exec = buy_signal.shift(1, fill_value=False)
-    sell_exec = sell_signal.shift(1, fill_value=False)
-
-    position = np.zeros(len(signals), dtype=int)
-    pos = 0
-    for i in range(len(signals)):
-        if pos == 0 and buy_exec.iat[i]:
-            pos = 1
-        elif pos == 1 and sell_exec.iat[i]:
-            pos = 0
-        position[i] = pos
-
-    close = data['price'] if 'price' in data.columns else data['close']
-    returns = close.pct_change().fillna(0.0).to_numpy()
-    strat_returns = position * returns
-
-    position_shift = np.roll(position, 1)
-    position_shift[0] = 0
-    entries = (position > position_shift)
-    exits = (position < position_shift)
-
-    buy_cost_frac = per_side_cost_fraction(swap_costs, trade_notional, 'buy')
-    sell_cost_frac = per_side_cost_fraction(swap_costs, trade_notional, 'sell')
-
-    # Apply fees & slippage costs
-    strat_returns = strat_returns - buy_cost_frac * entries.astype(float) - sell_cost_frac * exits.astype(float)
-
-    equity_curve = (1.0 + strat_returns).cumprod()
-
-    total_return = float(equity_curve[-1] - 1.0)
-    num_bars = len(data)
-    annual_factor = FIVE_MINUTES_PER_YEAR / max(num_bars, 1)
-    cagr = float(equity_curve[-1] ** annual_factor - 1.0)
-
-    rolling_peak = np.maximum.accumulate(equity_curve)
-    drawdowns = equity_curve / rolling_peak - 1.0
-    max_drawdown = float(drawdowns.min())
-
-    mean_per_bar = strat_returns.mean()
-    std_per_bar = strat_returns.std(ddof=0)
-    sharpe = float(mean_per_bar / std_per_bar * np.sqrt(FIVE_MINUTES_PER_YEAR)) if std_per_bar > 0 else 0.0
-    downside = strat_returns[strat_returns < 0]
-    if len(downside) > 0:
-        downside_std = downside.std(ddof=0)
-        sortino = float(mean_per_bar / downside_std * np.sqrt(FIVE_MINUTES_PER_YEAR)) if downside_std > 0 else 0.0
-    else:
-        sortino = 0.0
-
-    total_cost_frac = buy_cost_frac * entries.sum() + sell_cost_frac * exits.sum()
-    total_cost_pct = total_cost_frac * 100
-    total_cost_dai = total_cost_frac * trade_notional
-    avg_cost_per_trade_pct = (total_cost_pct / entries.sum()) if entries.sum() else 0.0
-
-    # Collect trade outcomes for win rate if desired
-    trade_returns: List[float] = []
-    in_trade = False
-    entry_equity = 1.0
-    for i in range(len(equity_curve)):
-        if entries[i] and not in_trade:
-            in_trade = True
-            entry_equity = equity_curve[i - 1] if i > 0 else 1.0
-        elif exits[i] and in_trade:
-            trade_returns.append(equity_curve[i] / entry_equity - 1.0)
-            in_trade = False
-
-    if in_trade:
-        trade_returns.append(equity_curve[-1] / entry_equity - 1.0)
-
-    win_rate = float(np.mean([r > 0 for r in trade_returns])) if trade_returns else 0.0
+    stats = eval_run_strategy(
+        strategy,
+        data,
+        swap_costs=swap_costs,
+        trade_notional=trade_notional,
+    )
 
     return {
-        'total_return_pct': total_return * 100,
-        'cagr_pct': cagr * 100,
-        'max_drawdown_pct': max_drawdown * 100,
-        'sharpe': sharpe,
-        'sortino': sortino,
-        'num_trades': int(entries.sum()),
-        'win_rate_pct': win_rate * 100,
-        'total_cost_pct': total_cost_pct,
-        'avg_cost_per_trade_pct': avg_cost_per_trade_pct,
-        'total_cost_dai': total_cost_dai,
+        'total_return_pct': stats['total_return_pct'],
+        'buy_hold_return_pct': stats['buy_hold_return_pct'],
+        'cagr_pct': stats['cagr_pct'],
+        'max_drawdown_pct': stats['max_drawdown_pct'],
+        'sharpe_ratio': stats['sharpe_ratio'],
+        'sortino_ratio': stats['sortino_ratio'],
+        'num_trades': stats['total_trades'],
+        'win_rate_pct': stats['win_rate_pct'],
+        'total_cost_pct': stats['total_cost_pct'],
+        'avg_cost_per_trade_pct': stats['avg_cost_per_trade_pct'],
+        'total_cost_dai': stats['total_cost_dai'],
     }
 
 
