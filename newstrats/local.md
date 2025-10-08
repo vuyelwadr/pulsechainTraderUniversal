@@ -158,6 +158,7 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 | Strategy | Total Return | Max DD | Trades | Notes |
 |----------|-------------:|-------:|-------:|-------|
 | CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Deep-dip mean reversion remains top performer |
+| Codex1CSMAEnhancedStrategy | **+6,282.8 %** | −92.2 % | 21 | RSI≤32 tweak captures extra rebounds without extra trades |
 | DonchianChampionDynamicStrategy | +5,434.7 % | −49.4 % | 32 | Champion v5 with ATR+gain-based DD |
 | DonchianChampionAggressiveStrategy | +3,668.3 % | −49.4 % | 34 | Champion v3 with DD=20 % |
 | MultiWeekBreakoutStrategy | +1,557.9 % | −60.6 % | 16 | High return, sits out downtrends |
