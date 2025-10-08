@@ -248,7 +248,8 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
 3. **Hybrid V2 risk controls:**
    - Investigate capped position sizing or volatility filters to bring the −95 % drawdown in line with other systems while retaining synergy between mean-revert and trend modules.
 4. **Automation:** wrap the current evaluation + CSV export in a Makefile or shell script to speed up iteration.
-5. **Logging:** maintain change logs for each strategy inside this `local.md` as tuning progresses.
+5. **Commit workflow:** when integrating remote bundles, `git commit` first to archive the raw drop, then re-run the local benchmarking and commit the integration with key metrics (e.g., full-period return %, max DD) captured in the commit body.
+6. **Logging:** maintain change logs for each strategy inside this `local.md` as tuning progresses.
 
 ## 10. Summary
 
