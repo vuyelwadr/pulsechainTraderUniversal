@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import argparse
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Type
@@ -32,6 +33,9 @@ from strategies.donchian_champion_strategy import (
     DonchianChampionStrategy,
     DonchianChampionAggressiveStrategy,
     DonchianChampionDynamicStrategy,
+)
+from strategies.donchian_champion_regime_codex1_strategy import (
+    DonchianChampionRegimeCodex1Strategy,
 )
 from strategies.tight_trend_follow_strategy import TightTrendFollowStrategy
 from strategies.hybrid_v2_strategy import HybridV2Strategy
@@ -84,6 +88,12 @@ STRATEGIES: List[StrategyDef] = [
         'strategies/donchian_champion_strategy.py',
         'Champion v4 breakout with ATR-based dynamic drawdown stop.',
         DonchianChampionDynamicStrategy,
+    ),
+    StrategyDef(
+        'DonchianChampionRegimeCodex1Strategy',
+        'strategies/donchian_champion_regime_codex1_strategy.py',
+        'Regime-gated Donchian breakout with adaptive trailing and cooldown (Codex1).',
+        DonchianChampionRegimeCodex1Strategy,
     ),
     StrategyDef(
         'TightTrendFollowStrategy',
@@ -226,10 +236,34 @@ def compute_buy_hold_metrics(close: pd.Series) -> Dict[str, float]:
     }
 
 
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        '--data',
+        type=Path,
+        default=Path('data/pdai_ohlcv_dai_730day_5m.csv'),
+        help='Path to the PDAI/DAI dataset CSV.',
+    )
+    parser.add_argument(
+        '--swap-cost-cache',
+        type=Path,
+        default=Path('reports/optimizer_top_top_strats_run/swap_cost_cache.json'),
+        help='Path to the swap cost cache JSON.',
+    )
+    parser.add_argument(
+        '--output',
+        type=Path,
+        default=Path('strategy_performance_summary.csv'),
+        help='Destination CSV path.',
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
-    output_path = Path('strategy_performance_summary.csv')
-    data = load_dataset(Path('data/pdai_ohlcv_dai_730day_5m.csv'))
-    swap_costs = load_swap_costs(Path('reports/optimizer_top_top_strats_run/swap_cost_cache.json'))
+    args = _parse_args()
+    output_path = args.output
+    data = load_dataset(args.data)
+    swap_costs = load_swap_costs(args.swap_cost_cache)
     trade_sizes = [5000, 10000, 25000]
 
     period_end = data['timestamp'].max()

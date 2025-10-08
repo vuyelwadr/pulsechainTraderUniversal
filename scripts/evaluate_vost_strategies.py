@@ -31,6 +31,9 @@ from strategies.donchian_champion_strategy import (
     DonchianChampionAggressiveStrategy,
     DonchianChampionDynamicStrategy,
 )
+from strategies.donchian_champion_regime_codex1_strategy import (
+    DonchianChampionRegimeCodex1Strategy,
+)
 from strategies.tight_trend_follow_strategy import TightTrendFollowStrategy
 from strategies.hybrid_v2_strategy import HybridV2Strategy
 
@@ -243,6 +246,7 @@ def main() -> None:
         ('DonchianChampion', DonchianChampionStrategy()),
         ('DonchianChampionAggressive', DonchianChampionAggressiveStrategy()),
         ('DonchianChampionDynamic', DonchianChampionDynamicStrategy()),
+        ('DonchianChampionRegimeCodex1', DonchianChampionRegimeCodex1Strategy()),
         ('HybridV2', HybridV2Strategy()),
         ('TightTrendFollow', TightTrendFollowStrategy()),
         ('MultiWeekBreakout', MultiWeekBreakoutStrategy()),
