@@ -136,9 +136,9 @@ class DonchianChampionDynamicStrategy(DonchianChampionStrategy):
             'exit_days': 2.0,
             'ema_exit_days': 3.0,
             'dd_base': 0.18,
-            'dd_k': 0.5,
-            'dd_min': 0.12,
-            'dd_max': 0.30,
+            'dd_k': 0.4,
+            'dd_min': 0.10,
+            'dd_max': 0.32,
             'atr_days': 1.0,
             'timeframe_minutes': 5,
         }
