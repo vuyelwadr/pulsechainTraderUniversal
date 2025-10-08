@@ -1,0 +1,127 @@
+{
+  "TAB_pro1": {
+    "lookback": 55,
+    "atr_n": 14,
+    "atr_mult_stop": 3.0,
+    "min_hold_bars": 6,
+    "time_stop_bars": 96,
+    "cost_safety_mult": 1.2,
+    "pair_hint": "HEX/DAI",
+    "nominal_trade_size_dai": 1000.0,
+    "vol_quantile_filter": 0.2
+  },
+  "AMAC_pro1": {
+    "fast": 10,
+    "slow": 45,
+    "atr_n": 14,
+    "atr_mult_stop": 2.5,
+    "time_stop_bars": 96,
+    "cost_safety_mult": 1.15,
+    "pair_hint": "HEX/DAI",
+    "nominal_trade_size_dai": 1000.0,
+    "slope_confirm": 3,
+    "vol_quantile_filter": 0.2
+  },
+  "RMR_pro1": {
+    "rsi_lb": 14,
+    "rsi_buy": 32,
+    "bb_n": 20,
+    "bb_k": 2.0,
+    "adx_thresh": 18.0,
+    "atr_n": 14,
+    "atr_mult_stop": 2.0,
+    "time_stop_bars": 72,
+    "cost_safety_mult": 1.2,
+    "pair_hint": "HEX/DAI",
+    "nominal_trade_size_dai": 1000.0,
+    "vol_quantile_filter": 0.2
+  },
+  "EnsemblePro1": {
+    "TAB": {},
+    "AMAC": {},
+    "RMR": {}
+  },
+  "grids": {
+    "TAB_pro1": {
+      "lookback": [
+        20,
+        35,
+        55,
+        89
+      ],
+      "atr_mult_stop": [
+        2.0,
+        2.5,
+        3.0,
+        3.5
+      ],
+      "cost_safety_mult": [
+        1.1,
+        1.2,
+        1.35
+      ],
+      "time_stop_bars": [
+        48,
+        96,
+        144
+      ]
+    },
+    "AMAC_pro1": {
+      "fast": [
+        7,
+        10,
+        13
+      ],
+      "slow": [
+        34,
+        45,
+        60
+      ],
+      "atr_mult_stop": [
+        2.0,
+        2.5,
+        3.0
+      ],
+      "cost_safety_mult": [
+        1.05,
+        1.15,
+        1.25
+      ],
+      "time_stop_bars": [
+        48,
+        96,
+        144
+      ]
+    },
+    "RMR_pro1": {
+      "rsi_buy": [
+        28,
+        32,
+        36
+      ],
+      "bb_n": [
+        20,
+        30
+      ],
+      "bb_k": [
+        2.0,
+        2.5
+      ],
+      "atr_mult_stop": [
+        1.5,
+        2.0,
+        2.5
+      ],
+      "adx_thresh": [
+        15,
+        18,
+        22
+      ],
+      "time_stop_bars": [
+        48,
+        72,
+        96
+      ]
+    }
+  }
+}
