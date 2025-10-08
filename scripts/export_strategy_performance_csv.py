@@ -31,8 +31,10 @@ from strategies.c_sma_revert_strategy import CSMARevertStrategy
 from strategies.donchian_champion_strategy import (
     DonchianChampionStrategy,
     DonchianChampionAggressiveStrategy,
+    DonchianChampionDynamicStrategy,
 )
 from strategies.tight_trend_follow_strategy import TightTrendFollowStrategy
+from strategies.hybrid_v2_strategy import HybridV2Strategy
 
 
 FIVE_MINUTES_PER_YEAR = 365 * 24 * 60 // 5
@@ -74,14 +76,26 @@ STRATEGIES: List[StrategyDef] = [
     StrategyDef(
         'DonchianChampionAggressiveStrategy',
         'strategies/donchian_champion_strategy.py',
-        'Champion v2 breakout with 25% trailing stop overlay.',
+        'Champion v3 breakout with 20% trailing stop overlay.',
         DonchianChampionAggressiveStrategy,
+    ),
+    StrategyDef(
+        'DonchianChampionDynamicStrategy',
+        'strategies/donchian_champion_strategy.py',
+        'Champion v4 breakout with ATR-based dynamic drawdown stop.',
+        DonchianChampionDynamicStrategy,
     ),
     StrategyDef(
         'TightTrendFollowStrategy',
         'strategies/tight_trend_follow_strategy.py',
         'Tight trend-follow: EMA(1d)>EMA(3d)>EMA(10d) with breakout entry and 25% trail.',
         TightTrendFollowStrategy,
+    ),
+    StrategyDef(
+        'HybridV2Strategy',
+        'strategies/hybrid_v2_strategy.py',
+        'Hybrid V2: combines deep-dip entries with EMA trend breakouts and adaptive exits.',
+        HybridV2Strategy,
     ),
     StrategyDef(
         'MultiWeekBreakoutStrategy',

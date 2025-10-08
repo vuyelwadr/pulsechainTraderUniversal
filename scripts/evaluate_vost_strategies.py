@@ -29,13 +29,10 @@ from strategies.c_sma_revert_strategy import CSMARevertStrategy
 from strategies.donchian_champion_strategy import (
     DonchianChampionStrategy,
     DonchianChampionAggressiveStrategy,
+    DonchianChampionDynamicStrategy,
 )
 from strategies.tight_trend_follow_strategy import TightTrendFollowStrategy
-from strategies.c_sma_revert_strategy import CSMARevertStrategy
-from strategies.donchian_champion_strategy import (
-    DonchianChampionStrategy,
-    DonchianChampionAggressiveStrategy,
-)
+from strategies.hybrid_v2_strategy import HybridV2Strategy
 
 
 FIVE_MINUTES_PER_YEAR = 365 * 24 * 60 // 5
@@ -245,6 +242,8 @@ def main() -> None:
         ('CSMARevert', CSMARevertStrategy()),
         ('DonchianChampion', DonchianChampionStrategy()),
         ('DonchianChampionAggressive', DonchianChampionAggressiveStrategy()),
+        ('DonchianChampionDynamic', DonchianChampionDynamicStrategy()),
+        ('HybridV2', HybridV2Strategy()),
         ('TightTrendFollow', TightTrendFollowStrategy()),
         ('MultiWeekBreakout', MultiWeekBreakoutStrategy()),
         ('VOSTTrendRider', VOSTTrendRiderStrategy()),

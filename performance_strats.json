@@ -238,6 +238,98 @@
       }
     },
     {
+      "name": "DonchianChampionDynamicStrategy",
+      "file": "strategies/donchian_champion_strategy.py",
+      "description": "Champion v4 breakout with ATR-based dynamic drawdown stop.",
+      "performance_by_trade_size": {
+        "5000": {
+          "total_return_pct": 4599.933557187122,
+          "cagr_pct": 619.3556233856385,
+          "max_drawdown_pct": -49.02874761612349,
+          "sharpe": 2.6778920885027246,
+          "sortino": 1.3244438627001878,
+          "num_trades": 34,
+          "win_rate_pct": 52.94117647058824,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 99.41622340991107,
+          "avg_cost_per_trade_pct": 2.924006570879737,
+          "total_cost_dai": 4970.811170495554
+        },
+        "10000": {
+          "total_return_pct": 2479.075483461427,
+          "cagr_pct": 428.8986867082672,
+          "max_drawdown_pct": -53.74147173822321,
+          "sharpe": 2.3193986805118083,
+          "sortino": 1.1334950487498245,
+          "num_trades": 34,
+          "win_rate_pct": 50.0,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 158.29874108645478,
+          "avg_cost_per_trade_pct": 4.6558453260722,
+          "total_cost_dai": 15829.87410864548
+        },
+        "25000": {
+          "total_return_pct": 421.1727361710356,
+          "cagr_pct": 133.0513770919099,
+          "max_drawdown_pct": -64.28000269151977,
+          "sharpe": 1.3829938644450717,
+          "sortino": 0.6366132840513935,
+          "num_trades": 34,
+          "win_rate_pct": 38.23529411764706,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 312.68619832989503,
+          "avg_cost_per_trade_pct": 9.196652892055736,
+          "total_cost_dai": 78171.54958247376
+        }
+      }
+    },
+    {
+      "name": "HybridV2Strategy",
+      "file": "strategies/hybrid_v2_strategy.py",
+      "description": "Hybrid V2: combines deep-dip entries with EMA trend breakouts and adaptive exits.",
+      "performance_by_trade_size": {
+        "5000": {
+          "total_return_pct": 620.2960155538634,
+          "cagr_pct": 175.088648296818,
+          "max_drawdown_pct": -95.00832326038403,
+          "sharpe": 1.6714064734682885,
+          "sortino": 1.3618209992816066,
+          "num_trades": 85,
+          "win_rate_pct": 44.70588235294118,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 248.5405585247777,
+          "avg_cost_per_trade_pct": 2.9240065708797376,
+          "total_cost_dai": 12427.027926238885
+        },
+        "10000": {
+          "total_return_pct": 60.986045525401366,
+          "cagr_pct": 27.63757760917638,
+          "max_drawdown_pct": -97.31420007993165,
+          "sharpe": 1.3101817373046685,
+          "sortino": 1.0628005711954123,
+          "num_trades": 85,
+          "win_rate_pct": 44.70588235294118,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 395.74685271613697,
+          "avg_cost_per_trade_pct": 4.6558453260722,
+          "total_cost_dai": 39574.6852716137
+        },
+        "25000": {
+          "total_return_pct": -97.0293437556007,
+          "cagr_pct": -83.5054707295227,
+          "max_drawdown_pct": -99.8549318559997,
+          "sharpe": 0.3701424105578149,
+          "sortino": 0.2940622929943945,
+          "num_trades": 85,
+          "win_rate_pct": 41.17647058823529,
+          "buy_hold_return_pct": 200.10062012394803,
+          "total_cost_pct": 781.7154958247376,
+          "avg_cost_per_trade_pct": 9.196652892055736,
+          "total_cost_dai": 195428.87395618437
+        }
+      }
+    },
+    {
       "name": "TightTrendFollowStrategy",
       "file": "strategies/tight_trend_follow_strategy.py",
       "description": "Tight trend-follow: EMA(1d)>EMA(3d)>EMA(10d) with breakout entry and 25% trail.",
