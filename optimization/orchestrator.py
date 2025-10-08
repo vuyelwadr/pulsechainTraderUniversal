@@ -44,7 +44,7 @@ def load_strategy_specs(strategy_names: Sequence[str]) -> List[StrategySpec]:
 
 
 def _coerce_param(default: Any, lo: float, hi: float, rng: random.Random) -> Any:
-    if isinstance(default, bool) or (lo == 0 and hi == 1 and isinstance(default, (int, float))):
+    if isinstance(default, bool):
         return bool(rng.randint(0, 1))
     if isinstance(default, int):
         lo_i, hi_i = int(math.floor(lo)), int(math.ceil(hi))

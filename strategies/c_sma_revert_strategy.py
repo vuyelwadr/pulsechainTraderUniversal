@@ -36,6 +36,8 @@ class CSMARevertStrategy(BaseStrategy):
             'exit_up': 0.048,      # tuned exit overshoot ~=4.8%
             'rsi_period': 14,
             'rsi_max': 32.0,
+            'atr_period': 48,      # ~4 hours of 5m bars
+            'atr_mult': 1.8,       # trailing stop multiple
             'timeframe_minutes': 5,
         }
         if parameters:
@@ -51,9 +53,13 @@ class CSMARevertStrategy(BaseStrategy):
         df['price'] = price
         n_sma = int(self.parameters['n_sma'])
         rsi_period = int(self.parameters['rsi_period'])
+        atr_period = int(self.parameters.get('atr_period', 48))
 
         df['sma'] = _sma(price, n_sma)
         df['rsi'] = _rsi(price, rsi_period)
+        # Use absolute price changes as ATR proxy (no OHLC available)
+        df['atr_abs'] = price.diff().abs().rolling(atr_period, min_periods=atr_period).mean()
+        df['atr_abs'] = df['atr_abs'].ffill().fillna(0.0)
         return df
 
     def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
@@ -68,12 +74,16 @@ class CSMARevertStrategy(BaseStrategy):
         price = df['price'].to_numpy(float)
         sma = df['sma'].to_numpy(float)
         rsi = df['rsi'].to_numpy(float)
+        atr_abs = df.get('atr_abs', pd.Series(0.0, index=df.index)).to_numpy(float)
 
         entry_drop = float(self.parameters['entry_drop'])
         exit_up = float(self.parameters['exit_up'])
         rsi_max = float(self.parameters['rsi_max'])
+        atr_mult = float(self.parameters.get('atr_mult', 1.8))
 
         in_position = False
+        trail_stop = None
+        peak_price = None
         for i in range(len(df)):
             px = price[i]
             sm = sma[i]
@@ -87,10 +97,33 @@ class CSMARevertStrategy(BaseStrategy):
                     df.iat[i, df.columns.get_loc('buy_signal')] = True
                     df.iat[i, df.columns.get_loc('signal_strength')] = 1.0
                     in_position = True
+                    trail_stop = None
+                    peak_price = px
             else:
+                # Update trailing stop with latest ATR reading and peak price
+                if peak_price is None or px > peak_price:
+                    peak_price = px
+                if atr_abs[i] > 0 and px >= sm:
+                    candidate = peak_price - atr_mult * atr_abs[i]
+                    candidate = min(px, candidate)
+                    candidate = max(0.0, candidate)
+                    if trail_stop is None:
+                        trail_stop = candidate
+                    else:
+                        trail_stop = max(trail_stop, candidate)
+                # Profit target exit
                 if px >= sm * (1.0 + exit_up):
                     df.iat[i, df.columns.get_loc('sell_signal')] = True
                     df.iat[i, df.columns.get_loc('signal_strength')] = 1.0
                     in_position = False
+                    trail_stop = None
+                    peak_price = None
+                # Protective trailing stop
+                elif trail_stop is not None and px <= trail_stop:
+                    df.iat[i, df.columns.get_loc('sell_signal')] = True
+                    df.iat[i, df.columns.get_loc('signal_strength')] = 0.75
+                    in_position = False
+                    trail_stop = None
+                    peak_price = None
 
         return df

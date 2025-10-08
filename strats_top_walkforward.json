@@ -1,0 +1,7 @@
+[
+  "CompositeMomentumIndexStrategy",
+  "GridTradingStrategyV2Aggressive",
+  "CSMARevertStrategy",
+  "DonchianChampionAggressiveStrategy",
+  "Strategy_62_RSIAvgs"
+]

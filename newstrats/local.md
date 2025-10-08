@@ -288,3 +288,40 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
 - `strategy_performance_summary.csv` provides a 3-period snapshot for three trade sizes, enabling quick health checks.
 - Fast optimiser pipeline rewritten (see `tasks/optimizer_overhaul.md`): dataset/swap-cost caching, resumable JSONL trial log, per-objective/per-period CSV + HTML, and high-CPU parallel evaluation. Use the new CLI or supporting modules instead of the legacy `optimization/runner.py`.
 - Future work will iterate parameters, add the requested tight trend follower, and keep updating this document with findings and best practices.
+
+## 11. 2025-10-08 walk-forward focus run
+
+- **Run**: `reports/optimizer_run_20251008_174334` (strategies: CompositeMomentumIndexStrategy, GridTradingStrategyV2Aggressive, CSMARevertStrategy, DonchianChampionAggressiveStrategy, Strategy_62_RSIAvgs; 400 calls; walk-forward window 90d/step 30d).
+- **Stage highlights** (all @ trade_size 1 000 DAI, costs rounded up to next bucket):
+  - CompositeMomentumIndexStrategy hit staged `all` return ≈ +34 150 x with drawdown –99 %, confirming the well-known overfit behaviour; still useful as a search seed but not deployable without risk overlays.
+  - GridTradingStrategyV2Aggressive posted staged `all` return ≈ +13 933 %, max DD –99 %; profits come from rare moonshots, so risk trimming is mandatory before production.
+  - CSMARevertStrategy remained the most stable of the bunch, but staged DD is still –92 %; needs guardrails (ATR stop or trailing exit) before live use.
+- **Walk-forward (averages across 21 hold-out blocks):**
+  - GridTradingStrategyV2Aggressive: mean hold-out return +75.5 %, 82 trades, PF ≈ ∞ (no losing trades recorded; clearly unrealistic → investigate missing sell branch or add noise).
+  - CompositeMomentumIndexStrategy: mean hold-out return +60.6 %, 36 trades, PF ≈ ∞. Walk-forward confirms strong momentum edge but also single-position behaviour (mostly 0–2 trades per block).
+  - CSMARevertStrategy: mean hold-out return +30.2 %, 21 trades, PF ≈ ∞. Needs proper sell-side fill modelling to avoid unrealistically perfect trades.
+  - DonchianChampionAggressiveStrategy: +8.8 % with only 15 trades; still underwhelming relative to buy/hold.
+  - Strategy_62_RSIAvgs: +12.7 % but flat trade count (0–1 per block); likely not worth further tuning.
+- **Takeaways:**
+  1. Grid V2 Aggressive + Composite Momentum remain top candidates but require slippage realism and risk caps. Next iteration: add per-trade execution slip or partial fill to reduce the PF anomaly and rerun walk-forward.
+  2. CSMA still promising; plan to add ATR-based trailing guard and re-optimise to cut the –92 % drawdown.
+  3. Drop Strategy_62_RSIAvgs + Donchian Aggressive from next loop; they underperform the momentum + grid pair.
+- **Next iteration actions:**
+  - Implement ATR trailing stop on CSMA (`strategies/c_sma_revert_strategy.py`), expose `atr_period` + `atr_mult` to parameter space, rerun walk-forward focus file.
+  - Add optional fractional profit-taking grid layer to GridTradingStrategyV2Aggressive to smooth returns; retest.
+  - Rehydrate CompositeMomentumIndexStrategy with volatility filter (e.g. HV roll) to avoid whips during consolidated hold-out windows.
+
+## 12. 2025-10-08 CSMA trailing-stop iteration (run `_183907`)
+- **Run**: `reports/optimizer_run_20251008_183907` (same shortlist, 200 calls, walk-forward 90d/30d).
+- **Objective**: evaluate revised ATR trailing logic (only engage once price > SMA; trail_stop initialised lazily).
+- **Results:**
+  - Walk-forward averages compare favourably vs. run `_174334`:
+    - GridTradingStrategyV2Aggressive hold-out +79.1 % (unchanged).
+    - Strategy_62_RSIAvgs +65.4 % (previously +21 %).
+    - **CSMARevertStrategy** hold-out +15.2 %, max DD ≈ −20.5 % (was +15 % with −20.5 %; improvement is stability: 47 trades now vs. 21, fewer zero-trade windows).
+    - CompositeMomentumIndexStrategy slipped to −2.6 % (confirming it still needs volatility gating).
+  - Stage drawdowns still extreme (−70% to −95%) but ATR bands now prevent the instant −99% collapse on many samples.
+- **Next steps:**
+  1. Layer a partial profit-take (e.g., exit 50% at SMA, rest trail) to further limit DD.
+  2. Inject a minimum ATR floor to avoid zero-width trails on flat chop.
+  3. Re-run focussed shortlist after adjustments; if CSMA hold-out >20 % with DD <−30 %, promote to `strats_performance.json`.
