@@ -132,11 +132,11 @@ class DonchianChampionDynamicStrategy(DonchianChampionStrategy):
 
     def __init__(self, parameters: Dict | None = None):
         defaults = {
-            'entry_days': 11.0,
+            'entry_days': 12.0,
             'exit_days': 2.0,
             'ema_exit_days': 3.0,
-            'dd_base': 0.16,
-            'dd_k': 0.5,
+            'dd_base': 0.13,
+            'dd_k': 0.62,
             'gain_weight': 0.10,
             'dd_min': 0.10,
             'dd_max': 0.45,

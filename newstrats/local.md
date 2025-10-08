@@ -104,6 +104,7 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 - **Parameters:** `n_sma=576`, `entry_drop=0.30`, `exit_up=0.07`, `rsi_period=21`, `rsi_max=35`, `rsi_exit=65`, `trail_pct=0.20`, `cooldown_bars=1440`, `min_hold_bars=288`, plus ATR/drawdown gating.
 - **Logic:** Engage only during deep crashes (≥65 % drawdown, ATR/price ≥1.5 %), hold until SMA rebound or RSI relief, and enforce long cooldowns. Reduces trade count from 21 to ~4, improving scalability for 10–25 k buckets.
 - **Performance (bucket view):** +298 % (5 k), +271 % (10 k), +209 % (25 k); kept out of the default runner but useful when fee budget favours ultra-low churn.
+- **Runner research:** `newstrats/RESULTS_BUNDLE_V7/` and `newstrats/RESULTS_BUNDLE_V8/` capture constant-runner experiments (10 % and 15 % tail positions). The base bot currently assumes full-size entries/exits, so partial runners are parked as research until the execution engine supports fractional position rebalancing under the bucketed cost model.
 
 ### 4.5 DonchianChampion strategies (v1–v4)
 - **File:** `strategies/donchian_champion_strategy.py`
@@ -117,11 +118,11 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
   - Performance (5 k DAI): +3,668.3 %, Sharpe 2.54, max DD −49.4 %, trades 34.
   - Recent windows: last 3 months −42.4 %, last month −10.8 %; still exposed to downtrend churn but the tighter stop improves full-period profit dramatically.
 - **Champion v5 (DonchianChampionDynamicStrategy):**
-  - Replaces the fixed trailing stop with an **ATR-ratio-driven dynamic drawdown with gain loosening:** `dd_t = clip(dd_base + k × ATR_ratio + w × max(0, gain), dd_min, dd_max)` with defaults `dd_base=0.16`, `k=0.5`, `w=0.10`, `bounds=[0.10, 0.45]`.
-  - Performance (5 k DAI, bucket-based costs): **+5,434.7 %**, Sharpe 2.67, max DD −49.4 %, trades 32. The full reproduction script (`detailed_v5.md`) that charges costs on actual notionals reports ~+1,846 %, reinforcing the improvement over prior versions.
-  - Recent windows: last 3 months −38.8 %, last month −10.8 %; still subject to whipsaws but overall profit improved even further thanks to adaptive stops.
-- **Strengths:** When trending strongly, both deliver large net gains despite costs. v2 sharply reduces drawdown.
-- **Weaknesses:** Both still trade during downtrends; need additional regime gating to avoid fee bleed.
+  - Defaults now align with the v11/v12 sweep (`dd_base=0.13`, `dd_k=0.62`, `gain_weight=0.10`, `entry_days=12`), still using the **ATR-ratio-driven dynamic drawdown with gain loosening:** `dd_t = clip(dd_base + k × ATR_ratio + w × max(0, gain), dd_min, dd_max)`.
+  - Performance (bucket-based costs): **+7,288.5 %** (5 k), **+4,099.8 %** (10 k), **+832.2 %** (25 k); Sharpe improves to 2.90 and full-period max DD tightens to −44.3 %. This is a +34 % lift over the prior defaults at every bucket (see `newstrats/strategy_v11_bundle/` and `newstrats/strategy_v12_bundle/` for the raw grids and blotters).
+  - Recent windows: last 3 months −32.2 % (5 trades), last month −11.0 %; still whipsaw-prone during persistent downtrends, so regime gating remains on the backlog.
+- **Strengths:** Champion v5 now tops every bucket (5 k/10 k/25 k) while keeping drawdown under 45 %, so it replaces the older defaults in both the runner and analytics. Champion v3 stays in rotation as the lower-variance fallback when a fixed 20 % trail is preferable.
+- **Weaknesses:** Both Donchian variants still churn during prolonged HEX downtrends; adding macro EMA slope gating is still on the backlog.
 
 ### 4.6 HybridV2Strategy (new)
 - **File:** `strategies/hybrid_v2_strategy.py`
@@ -163,16 +164,16 @@ Both scripts rely on helper functions `load_dataset`, `load_swap_costs`, and `lo
 
 | Strategy | Total Return | Max DD | Trades | Notes |
 |----------|-------------:|-------:|-------:|-------|
-| CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Deep-dip mean reversion remains top performer |
-| DonchianChampionDynamicStrategy | +5,434.7 % | −49.4 % | 32 | Champion v5 with ATR+gain-based DD |
-| DonchianChampionAggressiveStrategy | +3,668.3 % | −49.4 % | 34 | Champion v3 with DD=20 % |
-| MultiWeekBreakoutStrategy | +1,557.9 % | −60.6 % | 16 | High return, sits out downtrends |
-| MultiWeekBreakoutUltraStrategy | +353.7 % | −53.9 % | 12 | Lower churn alternative; positive across all trade sizes |
-| DonchianChampionStrategy | +587.9 % | −88.0 % | 31 | Good trend capture but high drawdown |
-| HybridV2Strategy | +620.3 % | −95.0 % | 85 | Useful research baseline; struggles at high notionals |
-| TightTrendFollowStrategy | +320.1 % | −47.9 % | 61 | Trend follower; neutral-to-negative at larger notionals |
-| TrailingHoldStrategy | +61.5 % | −80.3 % | 1 | Safety net |
-| PassiveHoldStrategy | +195.7 % | −99.7 % | 1 | Baseline |
+| DonchianChampionDynamicStrategy | +7,288.5 % | −44.3 % | 32 | v5 defaults (`dd_base=0.13`, `dd_k=0.62`) now lead every bucket |
+| CSMARevertStrategy | +6,026.8 % | −92.2 % | 21 | Deep-dip mean reversion; crushes recoveries but tolerates huge DD |
+| DonchianChampionAggressiveStrategy | +3,668.3 % | −49.4 % | 34 | Fixed 20 % trail; slightly lower return but steadier than v1 |
+| MultiWeekBreakoutStrategy | +1,557.9 % | −60.6 % | 16 | High-return breakout that fully avoids recent downtrend fees |
+| HybridV2Strategy | +620.3 % | −95.0 % | 85 | Research combo of reversion + breakout; keep out of runner for now |
+| MultiWeekBreakoutUltraStrategy | +353.7 % | −53.9 % | 12 | Low-trade breakout, better scaling for 25 k bucket |
+| DonchianChampionStrategy | +587.9 % | −88.0 % | 31 | Legacy v1 baseline; high drawdown and fee leakage in chop |
+| TightTrendFollowStrategy | +320.1 % | −47.9 % | 61 | Trend follower; flat-to-negative for larger trade sizes |
+| TrailingHoldStrategy | +61.5 % | −80.3 % | 1 | Safety net to cap catastrophic collapse |
+| PassiveHoldStrategy | +195.7 % | −99.7 % | 1 | HEX buy-and-hold benchmark |
 
 Runner default (`strats_performance.json`) now includes:
 1. `CSMARevertStrategy`
@@ -184,9 +185,9 @@ Runner default (`strats_performance.json`) now includes:
 Hybrid V2 and Tight Trend Follow remain available for research but are excluded from the runner because they underperform at larger trade sizes.
 
 ### 5.2 Recent periods (trade size 5 k DAI)
-- **Last 3 months:** CSMARevertStrategy posted +213 %; MultiWeekBreakout stayed flat (0 trades); Donchian variants lost ~−42 % after multiple stop-outs; tight trend follower dipped −4 %.
-- **Last 1 month:** Most systematic strategies, including the tight trend follower and breakout, stayed flat (no trades). Donchian variants logged minor losses (~−10 %); CSMA had no entry.
-- **Interpretation:** The new gating in MultiWeekBreakout eliminates fee leakage during downtrends. Donchian variants need similar gating or regime filters to avoid repeated whipsaws. CSMA excels in volatile recoveries but remains fully exposed during the deepest part of a crash.
+- **Last 3 months:** CSMARevertStrategy delivered +211 % (2 trades, max DD −9.9 %), while Donchian Champion variants gave back −32 % to −39 % across five stop-outs each. MultiWeekBreakout and Ultra sat flat (no trades) and TightTrendFollow bled −17 % over six trades.
+- **Last 1 month:** Most systems stayed inactive (CSMA, both breakouts at 0 trades). Donchian Champion dynamic logged −11 % on a single failed breakout; TightTrendFollow slipped −4 %.
+- **Interpretation:** MultiWeekBreakout’s regime filters continue to eliminate fee leakage in downtrends. Donchian variants remain the next optimisation target—regime gating or macro filters should prevent repeated stop-outs when HEX grinds lower. CSMA remains the rapid-recovery specialist but needs portfolio-level risk caps because of its deep historical drawdown.
 
 ## 6. Testing Workflow / Commands Summary
 
@@ -240,6 +241,9 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
 | Hybrid research | `newstrats/strategy_hybrid_v2.py`, `newstrats/strategy_iteration_report_V2.md`, `newstrats/codex/pro1/pro1.md` |
 | v3 blotter & trend follow | `newstrats/best_v3_blotter_dd20.csv`, `newstrats/trend_follow_blotter.csv` |
 | v4/v5 dynamic breakout | `newstrats/detailed_v4.md`, `newstrats/detailed_v5.md`, `newstrats/best_v4_blotter_dynDD.csv` |
+| Donchian v11/v12 sweeps | `newstrats/strategy_v11_bundle/`, `newstrats/strategy_v12_bundle/` |
+| CSMA runner research | `newstrats/RESULTS_BUNDLE_V7/`, `newstrats/RESULTS_BUNDLE_V8/` |
+| Pro1/Pro2 dropboxes | `newstrats/pulsechain_pro1_bundle_v2/`, `newstrats/pro2_bundle/`, `newstrats/codex/pro2/` |
 | SMA tuning plots | `newstrats/tuned_sma_rsi_365d_equity_V2.png`, `newstrats/tuned_sma_rsi_730d_equity_V2.png` |
 | Iteration summary notes | `newstrats/detailed_agent2.md`, `newstrats/detailed_v3.md`, `newstrats/detailed_v4.md`, `newstrats/iteration_summary_runs_agent2.csv` |
 
@@ -259,6 +263,7 @@ Additional ad‑hoc notebooks or scripts can reuse `run_strategy` from `scripts/
 
 ## 10. Summary
 
+- DonchianChampionDynamicStrategy now runs with the v11/v12 defaults (`dd_base=0.13`, `dd_k=0.62`), improving net return by ~34 % across all trade-size buckets (7,288 % @ 5 k).
 - All strategies now run through the same cost-aware harness with per-step rounding, gas inclusion, and bucket-aware analytics in the CSV/JSON reports.
 - The repo contains mean-reverting (CSMA, Hybrid V2), breakout (Donchian v1–v5, MultiWeek variants), and trend-following (tight TTF) families, plus baseline holds.
 - `strategy_performance_summary.csv` provides a 3-period snapshot for three trade sizes, enabling quick health checks.

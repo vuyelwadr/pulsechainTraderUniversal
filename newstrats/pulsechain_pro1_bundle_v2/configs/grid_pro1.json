@@ -1,0 +1,124 @@
+{
+  "RegimeSwitchingPro1": {
+    "ema_fast": [
+      13,
+      21,
+      34
+    ],
+    "ema_slow": [
+      55,
+      89
+    ],
+    "ema_trend": [
+      200
+    ],
+    "donchian_n": [
+      20,
+      30
+    ],
+    "atr_n": [
+      14
+    ],
+    "r2_n": [
+      50
+    ],
+    "r2_trend_threshold": [
+      0.25,
+      0.3,
+      0.35
+    ],
+    "atr_norm_threshold": [
+      0.8,
+      0.9,
+      1.0
+    ],
+    "mr_band_z": [
+      1.0,
+      1.25,
+      1.5
+    ],
+    "mr_exit_z": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "min_edge_multiple": [
+      1.1,
+      1.15,
+      1.2
+    ],
+    "trade_amount_quote": [
+      250,
+      500,
+      1000
+    ],
+    "route_key": [
+      "HEX/DAI"
+    ]
+  },
+  "MeanReversionZScorePro1": {
+    "ema_n": [
+      40,
+      60,
+      80
+    ],
+    "z_entry": [
+      1.2,
+      1.6,
+      2.0
+    ],
+    "z_exit": [
+      0.15,
+      0.25,
+      0.35
+    ],
+    "vol_window": [
+      40,
+      60,
+      80
+    ],
+    "min_edge_multiple": [
+      1.1,
+      1.2,
+      1.3
+    ],
+    "trade_amount_quote": [
+      250,
+      500,
+      1000
+    ],
+    "route_key": [
+      "HEX/DAI"
+    ]
+  },
+  "LiquidityAwareBreakoutPro1": {
+    "donchian_n": [
+      35,
+      55,
+      89
+    ],
+    "vol_window": [
+      144,
+      288,
+      576
+    ],
+    "vol_thresh": [
+      0.6,
+      0.8,
+      1.0
+    ],
+    "min_edge_multiple": [
+      1.1,
+      1.2,
+      1.3
+    ],
+    "trade_amount_quote": [
+      250,
+      500,
+      1000
+    ],
+    "route_key": [
+      "HEX/DAI"
+    ]
+  }
+}
