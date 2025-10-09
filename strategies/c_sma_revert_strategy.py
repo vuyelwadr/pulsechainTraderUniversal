@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from .base_strategy import BaseStrategy
+from .indicator_utils import compute_adx, compute_multi_timeframe_adx, compute_atr
 
 
 def _sma(series: pd.Series, window: int) -> pd.Series:
@@ -40,6 +41,11 @@ class CSMARevertStrategy(BaseStrategy):
             'atr_mult': 1.8,       # trailing stop multiple
             'atr_floor_pct': 0.003,  # 0.3% price floor for ATR
             'timeframe_minutes': 5,
+            'adx_period': 14,
+            'adx_htf_period': 14,
+            'adx_htf_minutes': 60,
+            'adx_range_threshold': 22.0,
+            'time_stop_bars': 12,
         }
         if parameters:
             defaults.update(parameters)
@@ -59,12 +65,24 @@ class CSMARevertStrategy(BaseStrategy):
 
         df['sma'] = _sma(price, n_sma)
         df['rsi'] = _rsi(price, rsi_period)
-        # Use absolute price changes as ATR proxy (no OHLC available)
-        atr = price.diff().abs().rolling(atr_period, min_periods=atr_period).mean()
-        atr = atr.ffill().fillna(0.0)
+        high = df['high'] if 'high' in df.columns else price
+        low = df['low'] if 'low' in df.columns else price
+        close = df['close'] if 'close' in df.columns else price
+        atr_series = compute_atr(high, low, close, atr_period).ffill().fillna(0.0)
         if atr_floor_pct > 0:
-            atr = atr.clip(lower=price * atr_floor_pct)
-        df['atr_abs'] = atr
+            atr_series = atr_series.clip(lower=price * atr_floor_pct)
+        df['atr_abs'] = atr_series
+
+        adx_df = compute_adx(high, low, close, int(self.parameters['adx_period']))
+        df['adx'] = adx_df['adx']
+        df['adx_htf'] = compute_multi_timeframe_adx(
+            df[['timestamp', 'open', 'high', 'low', 'close']].copy(),
+            period=int(self.parameters['adx_htf_period']),
+            timeframe_minutes=int(self.parameters['adx_htf_minutes']),
+        )
+        adx_threshold = float(self.parameters['adx_range_threshold'])
+        df['is_range'] = (df['adx'] <= adx_threshold) & (df['adx_htf'] <= adx_threshold)
+
         return df
 
     def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
@@ -80,15 +98,18 @@ class CSMARevertStrategy(BaseStrategy):
         sma = df['sma'].to_numpy(float)
         rsi = df['rsi'].to_numpy(float)
         atr_abs = df.get('atr_abs', pd.Series(0.0, index=df.index)).to_numpy(float)
+        range_mask = df.get('is_range', pd.Series(True, index=df.index)).to_numpy(bool)
 
         entry_drop = float(self.parameters['entry_drop'])
         exit_up = float(self.parameters['exit_up'])
         rsi_max = float(self.parameters['rsi_max'])
         atr_mult = float(self.parameters.get('atr_mult', 1.8))
+        time_stop_bars = int(self.parameters.get('time_stop_bars', 0))
 
         in_position = False
         trail_stop = None
         peak_price = None
+        bars_in_trade = 0
         for i in range(len(df)):
             px = price[i]
             sm = sma[i]
@@ -98,13 +119,17 @@ class CSMARevertStrategy(BaseStrategy):
                 continue
 
             if not in_position:
+                if not range_mask[i]:
+                    continue
                 if px <= sm * (1.0 - entry_drop) and rs <= rsi_max:
                     df.iat[i, df.columns.get_loc('buy_signal')] = True
                     df.iat[i, df.columns.get_loc('signal_strength')] = 1.0
                     in_position = True
                     trail_stop = None
                     peak_price = px
+                    bars_in_trade = 0
             else:
+                bars_in_trade += 1
                 # Update trailing stop with latest ATR reading and peak price
                 if peak_price is None or px > peak_price:
                     peak_price = px
@@ -130,5 +155,13 @@ class CSMARevertStrategy(BaseStrategy):
                     in_position = False
                     trail_stop = None
                     peak_price = None
+                    bars_in_trade = 0
+                elif time_stop_bars > 0 and bars_in_trade >= time_stop_bars:
+                    df.iat[i, df.columns.get_loc('sell_signal')] = True
+                    df.iat[i, df.columns.get_loc('signal_strength')] = 0.5
+                    in_position = False
+                    trail_stop = None
+                    peak_price = None
+                    bars_in_trade = 0
 
         return df

@@ -4,9 +4,19 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
+import numpy as np
 import pandas as pd
+
+from optimization.runner import load_strategy_class
+from scripts.evaluate_vost_strategies import load_dataset, load_swap_costs, run_strategy
+
+_STAGE_TO_DAYS = {
+    '30d': 30,
+    '90d': 90,
+    '1y': 365,
+}
 
 
 def _format_params(params: Dict) -> str:
@@ -58,6 +68,9 @@ def _collect_timeframe_rows(
                 'total_cost_pct': metrics.get('total_cost_pct', 0.0),
                 'avg_cost_per_trade_pct': metrics.get('avg_cost_per_trade_pct', 0.0),
                 'final_balance': metrics.get('final_balance', 0.0),
+                'avg_buy_step_pct': metrics.get('avg_buy_step_pct', 0.0),
+                'avg_sell_step_pct': metrics.get('avg_sell_step_pct', 0.0),
+                'max_drawdown_duration_days': metrics.get('max_drawdown_duration_days', 0.0),
             }
         )
     if not rows:
@@ -93,6 +106,9 @@ def _collect_objective_rows(
                 'sortino_ratio': stage_metrics.get('sortino_ratio', stage_metrics.get('sortino', 0.0)),
                 'total_trades': stage_metrics.get('total_trades', stage_metrics.get('num_trades', 0)),
                 'final_balance': stage_metrics.get('final_balance', 0.0),
+                'avg_buy_step_pct': stage_metrics.get('avg_buy_step_pct', 0.0),
+                'avg_sell_step_pct': stage_metrics.get('avg_sell_step_pct', 0.0),
+                'max_drawdown_duration_days': stage_metrics.get('max_drawdown_duration_days', 0.0),
             }
         )
     if not rows:
@@ -102,14 +118,208 @@ def _collect_objective_rows(
     return df
 
 
+def _load_run_config(run_dir: Path) -> Optional[Dict[str, Any]]:
+    config_path = run_dir / 'config.json'
+    if not config_path.exists():
+        return None
+    try:
+        return json.loads(config_path.read_text())
+    except Exception:
+        return None
+
+
+def _slice_stage_window(df: pd.DataFrame, stage_label: str) -> pd.DataFrame:
+    days = _STAGE_TO_DAYS.get(stage_label)
+    if days is None:
+        return df
+    if 'timestamp' in df.columns:
+        cutoff = df['timestamp'].max() - pd.Timedelta(days=days)
+        return df[df['timestamp'] >= cutoff].reset_index(drop=True)
+    return df
+
+
+def _maybe_generate_equity_plot(
+    run_dir: Path,
+    stage_label: str,
+    top_row: Optional[pd.Series],
+    config_payload: Optional[Dict[str, Any]],
+) -> Optional[Path]:
+    if top_row is None or config_payload is None:
+        return None
+    try:
+        import matplotlib.pyplot as plt
+    except Exception:
+        return None
+    strategy_name = top_row.get('strategy')
+    if not strategy_name:
+        return None
+    params_raw = top_row.get('parameters', '{}')
+    try:
+        parameters = json.loads(params_raw) if isinstance(params_raw, str) else (params_raw or {})
+    except json.JSONDecodeError:
+        parameters = {}
+    data_path = Path(config_payload.get('data_path', ''))
+    swap_cost_path = Path(config_payload.get('swap_cost_cache', ''))
+    if not data_path.exists() or not swap_cost_path.exists():
+        return None
+    try:
+        df = load_dataset(data_path)
+        df = _slice_stage_window(df, stage_label)
+        swap_costs = load_swap_costs(swap_cost_path)
+        trade_size = float(config_payload.get('trade_size', 1000.0) or 1000.0)
+        strategy_cls = load_strategy_class(strategy_name)
+        if strategy_cls is None:
+            return None
+        strategy_instance = strategy_cls(parameters=parameters)
+        stats = run_strategy(
+            strategy_instance,
+            df,
+            swap_costs=swap_costs,
+            trade_notional=trade_size,
+            capture_trades=False,
+        )
+        equity_curve = np.asarray(stats.get('equity_curve', []), dtype=float)
+        if equity_curve.size == 0:
+            return None
+        if 'timestamp' in df.columns:
+            timestamps = pd.to_datetime(df['timestamp'])
+        else:
+            timestamps = pd.RangeIndex(start=0, stop=len(df))
+        price_series = df['price'] if 'price' in df.columns else df['close']
+        initial_price = float(price_series.iloc[0])
+        buy_hold_equity = trade_size * (price_series / max(initial_price, 1e-9))
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(timestamps, equity_curve, label='Strategy Equity', linewidth=2)
+        ax.plot(timestamps, buy_hold_equity, label='Buy & Hold', linestyle='--', linewidth=1.5)
+        ax.set_title(f"Top Trial Equity Curve — {strategy_name}")
+        ax.set_ylabel("Equity (DAI)")
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        fig.autofmt_xdate()
+        output_path = run_dir / 'top_trial_equity.png'
+        fig.savefig(output_path, bbox_inches='tight')
+        plt.close(fig)
+        return output_path
+    except Exception:
+        return None
+
+
+def _generate_trade_plots(
+    run_dir: Path,
+    stage_label: str,
+    primary_df: Optional[pd.DataFrame],
+    config_payload: Optional[Dict[str, Any]],
+) -> None:
+    if primary_df is None or primary_df.empty or config_payload is None:
+        return
+    data_path = Path(config_payload.get('data_path', ''))
+    swap_cost_path = Path(config_payload.get('swap_cost_cache', ''))
+    if not data_path.exists() or not swap_cost_path.exists():
+        return
+    try:
+        import matplotlib.pyplot as plt
+    except Exception:
+        return
+
+    try:
+        df = load_dataset(data_path)
+        df = _slice_stage_window(df, stage_label)
+        swap_costs = load_swap_costs(swap_cost_path)
+    except Exception:
+        return
+
+    if 'timestamp' not in df.columns:
+        return
+    timestamps = pd.to_datetime(df['timestamp'])
+    price_series = df['price'] if 'price' in df.columns else df['close']
+    trade_size = float(config_payload.get('trade_size', 1000.0) or 1000.0)
+
+    visual_dir = run_dir / 'visualizations'
+    visual_dir.mkdir(parents=True, exist_ok=True)
+
+    for strategy_name in primary_df['strategy'].unique():
+        subset = primary_df[primary_df['strategy'] == strategy_name]
+        if subset.empty:
+            continue
+        row = subset.iloc[0]
+        params_raw = row.get('parameters', '{}')
+        try:
+            parameters = json.loads(params_raw) if isinstance(params_raw, str) else (params_raw or {})
+        except json.JSONDecodeError:
+            parameters = {}
+        strategy_cls = load_strategy_class(strategy_name)
+        if strategy_cls is None:
+            continue
+        try:
+            strategy_instance = strategy_cls(parameters=parameters)
+        except Exception:
+            continue
+        try:
+            stats = run_strategy(
+                strategy_instance,
+                df.copy(),
+                swap_costs=swap_costs,
+                trade_notional=trade_size,
+                capture_trades=True,
+            )
+        except Exception:
+            continue
+        trades = stats.get('trades') or []
+        if not trades:
+            continue
+        trades_df = pd.DataFrame(trades)
+        trades_df.to_csv(visual_dir / f'{strategy_name}_trades.csv', index=False)
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(timestamps, price_series, label='Price', color='black', linewidth=1.0)
+
+        if 'entry_index' in trades_df:
+            entry_idx = trades_df['entry_index'].dropna().astype(int)
+            entry_idx = entry_idx[(entry_idx >= 0) & (entry_idx < len(timestamps))]
+            if not entry_idx.empty:
+                ax.scatter(
+                    timestamps.iloc[entry_idx],
+                    price_series.iloc[entry_idx],
+                    marker='^',
+                    color='green',
+                    s=40,
+                    label='Buy',
+                )
+        if 'exit_index' in trades_df:
+            exit_idx = trades_df['exit_index'].dropna().astype(int)
+            exit_idx = exit_idx[(exit_idx >= 0) & (exit_idx < len(timestamps))]
+            if not exit_idx.empty:
+                ax.scatter(
+                    timestamps.iloc[exit_idx],
+                    price_series.iloc[exit_idx],
+                    marker='v',
+                    color='red',
+                    s=40,
+                    label='Sell',
+                )
+
+        ax.set_title(f'{strategy_name} — Trades')
+        ax.set_ylabel('Price (DAI)')
+        ax.grid(alpha=0.3)
+        ax.legend()
+        fig.autofmt_xdate()
+        fig.savefig(visual_dir / f'{strategy_name}_trades.png', bbox_inches='tight')
+        plt.close(fig)
+
+
 def _render_html(
     output_path: Path,
     objectives: Sequence[str],
     objective_tables: Dict[str, pd.DataFrame],
     timeframe_tables: Dict[str, Tuple[str, pd.DataFrame]],
+    equity_plot_path: Optional[Path],
 ) -> None:
     sections: List[str] = []
     sections.append("<h1>Optimizer Run Summary</h1>")
+
+    if equity_plot_path and equity_plot_path.exists():
+        sections.append("<h2>Top Trial Equity Curve</h2>")
+        sections.append(f"<img src=\"{equity_plot_path.name}\" alt=\"Top trial equity curve\" style=\"max-width:100%;height:auto;\"/>")
 
     sections.append("<h2>Top Strategies by Objective</h2>")
     for objective in objectives:
@@ -159,6 +369,7 @@ def generate_reports(
 ) -> None:
     """Produce CSV + HTML reports summarising optimisation results."""
     run_dir.mkdir(parents=True, exist_ok=True)
+    config_payload = _load_run_config(run_dir)
     timeframe_tables: Dict[str, Tuple[str, pd.DataFrame]] = {}
     primary_df: Optional[pd.DataFrame] = None
     for label, title in timeframe_labels:
@@ -182,9 +393,17 @@ def generate_reports(
         summary_path = run_dir / 'summary_total_return.csv'
         primary_df.to_csv(summary_path, index=False)
 
+    equity_plot_path: Optional[Path] = None
+    if primary_df is not None and not primary_df.empty and timeframe_labels:
+        stage_label = timeframe_labels[0][0]
+        top_row = primary_df.iloc[0]
+        equity_plot_path = _maybe_generate_equity_plot(run_dir, stage_label, top_row, config_payload)
+        _generate_trade_plots(run_dir, stage_label, primary_df, config_payload)
+
     _render_html(
         run_dir / 'report.html',
         objectives,
         objective_tables,
         timeframe_tables,
+        equity_plot_path,
     )

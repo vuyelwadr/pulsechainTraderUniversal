@@ -8,6 +8,7 @@ import numpy as np
 from typing import Dict, Tuple
 import talib
 from strategies.base_strategy import BaseStrategy
+from .indicator_utils import compute_adx, compute_multi_timeframe_adx, compute_atr
 import logging
 
 logger = logging.getLogger(__name__)
@@ -957,7 +958,15 @@ class CompositeMomentumIndexStrategy(BaseStrategy):
             'roc_period': 10,
             'tsi_long': 25,
             'tsi_short': 13,
-            'signal_threshold': 0.7
+            'signal_threshold': 0.7,
+            'adx_period': 14,
+            'adx_htf_period': 14,
+            'adx_htf_minutes': 60,
+            'adx_trend_threshold': 25.0,
+            'atr_period': 14,
+            'atr_floor_pct': 0.002,
+            'chandelier_period': 22,
+            'chandelier_atr_mult': 3.0,
         }
         if parameters:
             default_params.update(parameters)
@@ -994,22 +1003,61 @@ class CompositeMomentumIndexStrategy(BaseStrategy):
         
         # Composite Momentum Index (weighted average)
         df['cmi'] = (df['rsi_norm'] * 0.4 + df['roc_norm'] * 0.3 + df['tsi_norm'] * 0.3)
-        
+
+        high = df['high'] if 'high' in df.columns else df['close']
+        low = df['low'] if 'low' in df.columns else df['close']
+        close = df['close']
+
+        adx_df = compute_adx(high, low, close, int(self.parameters['adx_period']))
+        df['adx'] = adx_df['adx']
+        df['plus_di'] = adx_df['plus_di']
+        df['minus_di'] = adx_df['minus_di']
+        df['adx_htf'] = compute_multi_timeframe_adx(
+            df[['timestamp', 'open', 'high', 'low', 'close']].copy(),
+            period=int(self.parameters['adx_htf_period']),
+            timeframe_minutes=int(self.parameters['adx_htf_minutes']),
+        )
+        adx_threshold = float(self.parameters['adx_trend_threshold'])
+        df['is_trending'] = (df['adx'] >= adx_threshold) & (df['adx_htf'] >= adx_threshold)
+
+        atr_period = int(self.parameters['atr_period'])
+        atr_series = compute_atr(high, low, close, atr_period)
+        df['atr'] = atr_series
+        df['atr_pct'] = atr_series / close.replace(0, np.nan)
+        atr_floor_pct = float(self.parameters['atr_floor_pct'])
+        if atr_floor_pct > 0:
+            df['atr_ok'] = df['atr_pct'] >= atr_floor_pct
+        else:
+            df['atr_ok'] = True
+
+        chandelier_period = int(self.parameters['chandelier_period'])
+        chandelier_mult = float(self.parameters['chandelier_atr_mult'])
+        rolling_high = df['high'].rolling(chandelier_period, min_periods=1).max()
+        df['chandelier_long'] = rolling_high - chandelier_mult * df['atr']
+
         return df
     
     def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
         df = data.copy()
         
-        # Buy when CMI crosses above 30 (oversold)
-        df['buy_signal'] = (df['cmi'] > 30) & (df['cmi'].shift(1) <= 30)
+        trend_mask = df.get('is_trending', True)
+        atr_mask = df.get('atr_ok', True)
+
+        # Buy when CMI crosses above 30 (oversold) while in a valid trend/vol regime
+        df['buy_signal'] = trend_mask & atr_mask & (df['cmi'] > 30) & (df['cmi'].shift(1) <= 30)
         
         # Sell when CMI crosses below 70 (overbought)
         df['sell_signal'] = (df['cmi'] < 70) & (df['cmi'].shift(1) >= 70)
+        if 'chandelier_long' in df.columns:
+            df['sell_signal'] |= df['close'] <= df['chandelier_long']
         
         # Signal strength based on extremity
-        df['signal_strength'] = np.where(df['cmi'] < 50,
-                                        (50 - df['cmi']) / 50,
-                                        (df['cmi'] - 50) / 50)
+        raw_strength = np.where(
+            df['cmi'] < 50,
+            (50 - df['cmi']) / 50,
+            (df['cmi'] - 50) / 50,
+        )
+        df['signal_strength'] = np.where(trend_mask & atr_mask, raw_strength, 0.0)
         
         return df
 
@@ -1022,6 +1070,14 @@ class CompositeMomentumIndexStrategy(BaseStrategy):
             'tsi_long': (15, 40),  # TSI long period
             'tsi_short': (5, 20),  # TSI short period
             'signal_threshold': (0.0, 0.95),  # Signal threshold can't be 1.0
+            'adx_period': (10, 28),
+            'adx_htf_period': (10, 28),
+            'adx_htf_minutes': (30, 240),
+            'adx_trend_threshold': (20.0, 35.0),
+            'atr_period': (10, 30),
+            'atr_floor_pct': (0.0, 0.01),
+            'chandelier_period': (14, 40),
+            'chandelier_atr_mult': (2.0, 4.0),
         }
 
 

@@ -40,6 +40,7 @@ class GridTradingStrategyV2Aggressive(GridTradingStrategyV2):
             'trail_atr_mult': 2.0,
             'no_sell_above_ema_fast_in_bull': 1,
             'allow_bear_breakout_sell': 0,
+            'max_equity_drawdown_pct': 0.45,
         }
         if parameters:
             p.update(parameters)
@@ -70,6 +71,13 @@ class GridTradingStrategyV2Aggressive(GridTradingStrategyV2):
         if not len(self._levels):
             return df
 
+        buy_levels = [lvl for lvl in self._levels if lvl <= self._center]
+        sell_levels = [lvl for lvl in self._levels if lvl >= self._center]
+        buy_decay = float(self.parameters.get('buy_level_decay', 1.0))
+        sell_decay = float(self.parameters.get('sell_level_decay', 1.0))
+        buy_decay = np.clip(buy_decay, 0.1, 1.0)
+        sell_decay = np.clip(sell_decay, 0.1, 1.0)
+
         # Pull common params from V2
         min_strength = float(self.parameters.get('min_strength', 0.55))
         cooldown_bars = max(0, int(self.parameters.get('cooldown_bars', 2)))
@@ -88,6 +96,10 @@ class GridTradingStrategyV2Aggressive(GridTradingStrategyV2):
         allow_bear_breakout_sell = int(self.parameters.get('allow_bear_breakout_sell', 0)) == 1
 
         cooldown = 0
+        in_position = False
+        entry_price = None
+        position_stack: List[float] = []
+        max_drawdown_pct = float(self.parameters.get('max_equity_drawdown_pct', 0.45))
         for i in range(len(df)):
             px = float(df.iloc[i]['price'])
             step = float(df.iloc[i]['step_pct'])
@@ -98,6 +110,7 @@ class GridTradingStrategyV2Aggressive(GridTradingStrategyV2):
             donch_hi = float(df.iloc[i].get('donch_hi', np.nan)) if pd.notna(df.iloc[i].get('donch_hi', np.nan)) else None
             donch_lo = float(df.iloc[i].get('donch_lo', np.nan)) if pd.notna(df.iloc[i].get('donch_lo', np.nan)) else None
             atr = float(df.iloc[i].get('atr', 0.0))
+            regime_on = bool(df.iloc[i].get('regime_on', True))
 
             if cooldown > 0:
                 cooldown -= 1
@@ -108,6 +121,8 @@ class GridTradingStrategyV2Aggressive(GridTradingStrategyV2):
 
             allow_buy = True
             allow_sell = True
+            if not regime_on:
+                allow_buy = False
             if is_bear:
                 if side_bear == 1:
                     allow_sell = False
@@ -120,11 +135,13 @@ class GridTradingStrategyV2Aggressive(GridTradingStrategyV2):
 
             # 1) Rung buys
             if allow_buy:
-                for lvl in (l for l in self._levels if l <= self._center):
+                for idx, lvl in enumerate(buy_levels):
                     if px >= lvl * (1.0 - tol_b_lo) and px <= lvl * (1.0 + tol_b_hi):
                         dist = abs(px - lvl) / max(px, 1e-12)
                         strength = float(np.clip(1.0 - (dist / max(eff, 1e-6)), 0.0, 1.0))
                         strength *= (1.0 if is_bull else 0.8)
+                        if buy_decay < 1.0:
+                            strength *= buy_decay ** idx
                         if strength > best_strength:
                             best_strength = strength; want_buy = True; want_sell = False
                         break
@@ -136,12 +153,14 @@ class GridTradingStrategyV2Aggressive(GridTradingStrategyV2):
                 trailing_exit = (atr > 0 and px <= ema_fast - trail_k * atr)
                 permit_sell = (not strong_bull) or trailing_exit
                 if permit_sell:
-                    for lvl in (l for l in self._levels if l >= self._center):
+                    for idx, lvl in enumerate(sell_levels):
                         if px <= lvl * (1.0 + tol_s_hi) and px >= lvl * (1.0 - tol_s_lo):
                             dist = abs(px - lvl) / max(px, 1e-12)
                             strength = float(np.clip(1.0 - (dist / max(eff, 1e-6)), 0.0, 1.0))
                             # in bull, slightly damp rung sells
                             strength *= (0.9 if is_bull else 1.0)
+                            if sell_decay < 1.0:
+                                strength *= sell_decay ** idx
                             if strength > best_strength:
                                 best_strength = strength; want_buy = False; want_sell = True
                             break
@@ -149,10 +168,12 @@ class GridTradingStrategyV2Aggressive(GridTradingStrategyV2):
                     # Explicitly gate sells above EMA-fast in strong bull if configured
                     if not no_sell_above_fast:
                         # fallback to normal rung logic
-                        for lvl in (l for l in self._levels if l >= self._center):
+                        for idx, lvl in enumerate(sell_levels):
                             if px <= lvl * (1.0 + tol_s_hi) and px >= lvl * (1.0 - tol_s_lo):
                                 dist = abs(px - lvl) / max(px, 1e-12)
                                 strength = float(np.clip(1.0 - (dist / max(eff, 1e-6)), 0.0, 1.0))
+                                if sell_decay < 1.0:
+                                    strength *= sell_decay ** idx
                                 if strength > best_strength:
                                     best_strength = strength; want_buy = False; want_sell = True
                                 break
@@ -181,6 +202,28 @@ class GridTradingStrategyV2Aggressive(GridTradingStrategyV2):
                 df.iat[i, df.columns.get_loc('signal_strength')] = best_strength
                 cooldown = cooldown_bars
 
+            # Global drawdown fail-safe
+            if in_position and max_drawdown_pct > 0 and position_stack:
+                avg_entry = float(np.mean(position_stack))
+                if px <= avg_entry * (1.0 - max_drawdown_pct):
+                    df.iat[i, df.columns.get_loc('sell_signal')] = True
+                    df.iat[i, df.columns.get_loc('signal_strength')] = max(
+                        df.iat[i, df.columns.get_loc('signal_strength')], 0.9
+                    )
+                    in_position = False
+                    entry_price = None
+                    position_stack.clear()
+                    continue
+
+            if df.iat[i, df.columns.get_loc('sell_signal')]:
+                in_position = False
+                entry_price = None
+                position_stack.clear()
+            elif df.iat[i, df.columns.get_loc('buy_signal')]:
+                in_position = True
+                entry_price = px
+                position_stack.append(px)
+
         return df
 
     @classmethod
@@ -194,6 +237,6 @@ class GridTradingStrategyV2Aggressive(GridTradingStrategyV2):
             'trail_atr_mult': (1.0, 3.5),
             'no_sell_above_ema_fast_in_bull': (0, 1),
             'allow_bear_breakout_sell': (0, 1),
+            'max_equity_drawdown_pct': (0.15, 0.40),
         })
         return base
-

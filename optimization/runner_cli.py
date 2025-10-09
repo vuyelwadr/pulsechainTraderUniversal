@@ -282,7 +282,7 @@ def main() -> None:
     if args.objectives:
         objectives = [obj.strip() for obj in args.objectives.split(',') if obj.strip()]
     else:
-        objectives = ['final_balance','profit_biased','cps_v2_profit_biased','mar','utility','cps','cps_v2']
+        objectives = ['return_dd_ratio']
 
     strategies = _load_strategy_names(args.strategies_file)
     strategy_specs = load_strategy_specs(strategies)

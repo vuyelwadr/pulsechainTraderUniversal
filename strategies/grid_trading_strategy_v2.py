@@ -55,6 +55,8 @@ class GridTradingStrategyV2(BaseStrategy):
         p = {
             'min_step_pct': 0.02,
             'atr_mult': 1.0,
+            'buy_atr_mult': 1.0,
+            'sell_atr_mult': 1.0,
             'num_grids': 10,
             'trend_ema_fast': 50,
             'trend_ema_slow': 200,
@@ -74,6 +76,12 @@ class GridTradingStrategyV2(BaseStrategy):
             'tol_sell_lo': 0.005,
             'tol_sell_hi': 0.01,
             'timeframe_minutes': 60,
+            'regime_enabled': 1,
+            'regime_timeframe': '4h',
+            'regime_ma_period': 120,
+            'regime_buffer_pct': 0.01,
+            'buy_level_decay': 0.75,
+            'sell_level_decay': 0.85,
         }
         if parameters:
             p.update(parameters)
@@ -82,6 +90,8 @@ class GridTradingStrategyV2(BaseStrategy):
         self._levels: List[float] = []
         self._center: float = 0.0
         self._last_center_price: float = 0.0
+        self._buy_step_samples: List[float] = []
+        self._sell_step_samples: List[float] = []
 
     # --- helpers ---
     @staticmethod
@@ -140,6 +150,26 @@ class GridTradingStrategyV2(BaseStrategy):
         min_step = float(self.parameters['min_step_pct'])
         df['step_pct'] = np.maximum(min_step, float(self.parameters['atr_mult']) * df['atrp'])
 
+        # Higher-timeframe regime filter gating
+        df['regime_ma'] = np.nan
+        df['regime_on'] = True
+        if int(self.parameters.get('regime_enabled', 1)) == 1 and 'timestamp' in df.columns:
+            try:
+                ts = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
+                base = pd.DataFrame({'timestamp': ts, 'price': df['price']}).dropna()
+                base = base.set_index('timestamp')
+                timeframe = (str(self.parameters.get('regime_timeframe', '4h')) or '4h').lower()
+                ht_close = base['price'].resample(timeframe).last().dropna()
+                span = max(2, int(self.parameters.get('regime_ma_period', 200)))
+                regime_ma = ht_close.ewm(span=span, adjust=False).mean()
+                mapped = regime_ma.reindex(ts, method='ffill')
+                df['regime_ma'] = mapped.to_numpy()
+                buffer_pct = float(self.parameters.get('regime_buffer_pct', 0.0))
+                df['regime_on'] = (df['price'] > df['regime_ma'] * (1.0 + buffer_pct)).fillna(False)
+            except Exception:
+                df['regime_ma'] = np.nan
+                df['regime_on'] = True
+
         # decide center and rebuild levels
         center_lookback = max(2, int(self.parameters['center_lookback']))
         current_center = float(df['price'].tail(center_lookback).mean())
@@ -148,11 +178,20 @@ class GridTradingStrategyV2(BaseStrategy):
         # asymmetric spacing by regime
         last_is_bull = bool(df['bullish'].iloc[-1])
         last_is_bear = bool(df['bearish'].iloc[-1])
-        base_step = float(df['step_pct'].iloc[-1])
-        step_buy = base_step * (float(self.parameters['buy_spacing_mult_bear']) if last_is_bear else 1.0)
-        step_sell = base_step * (float(self.parameters['sell_spacing_mult_bull']) if last_is_bull else 1.0)
+        atr_slice = df['atrp'].tail(max(center_lookback, 5)).dropna()
+        avg_atrp = float(atr_slice.mean()) if not atr_slice.empty else float(df['atrp'].iloc[-1])
+        base_buy = max(min_step, avg_atrp * float(self.parameters.get('buy_atr_mult', self.parameters.get('atr_mult', 1.0))))
+        base_sell = max(min_step, avg_atrp * float(self.parameters.get('sell_atr_mult', self.parameters.get('atr_mult', 1.0))))
+        base_buy = float(np.clip(base_buy, min_step, 0.5))
+        base_sell = float(np.clip(base_sell, min_step, 0.5))
+        step_buy = base_buy * (float(self.parameters['buy_spacing_mult_bear']) if last_is_bear else 1.0)
+        step_sell = base_sell * (float(self.parameters['sell_spacing_mult_bull']) if last_is_bull else 1.0)
 
         if not len(self._levels) or self._need_recenter(df, current_price):
+            if step_buy > 0:
+                self._buy_step_samples.append(step_buy)
+            if step_sell > 0:
+                self._sell_step_samples.append(step_sell)
             self._rebuild_levels(current_center, step_buy, step_sell, int(self.parameters['num_grids']))
             self._last_center_price = current_price
 
@@ -169,6 +208,13 @@ class GridTradingStrategyV2(BaseStrategy):
         if not len(self._levels):
             return df
 
+        buy_levels = [lvl for lvl in self._levels if lvl <= self._center]
+        sell_levels = [lvl for lvl in self._levels if lvl >= self._center]
+        buy_decay = float(self.parameters.get('buy_level_decay', 1.0))
+        sell_decay = float(self.parameters.get('sell_level_decay', 1.0))
+        buy_decay = np.clip(buy_decay, 0.1, 1.0)
+        sell_decay = np.clip(sell_decay, 0.1, 1.0)
+
         min_strength = float(self.parameters['min_strength'])
         cooldown_bars = max(0, int(self.parameters['cooldown_bars']))
         min_edge = float(self.parameters['min_edge_pct'])
@@ -183,6 +229,7 @@ class GridTradingStrategyV2(BaseStrategy):
             step = float(df.iloc[i]['step_pct'])
             is_bull = bool(df.iloc[i].get('bullish', False))
             is_bear = bool(df.iloc[i].get('bearish', False))
+            regime_on = bool(df.iloc[i].get('regime_on', True))
 
             if cooldown > 0:
                 cooldown -= 1
@@ -194,6 +241,8 @@ class GridTradingStrategyV2(BaseStrategy):
 
             allow_buy = True
             allow_sell = True
+            if not regime_on:
+                allow_buy = False
             if is_bear:
                 if side_bear == 1:
                     allow_sell = False
@@ -206,23 +255,27 @@ class GridTradingStrategyV2(BaseStrategy):
 
             # buy rung checks
             if allow_buy:
-                for lvl in (l for l in self._levels if l <= self._center):
+                for idx, lvl in enumerate(buy_levels):
                     if px >= lvl * (1.0 - tol_b_lo) and px <= lvl * (1.0 + tol_b_hi):
                         dist = abs(px - lvl) / max(px, 1e-12)
                         strength = float(np.clip(1.0 - (dist / max(eff, 1e-6)), 0.0, 1.0))
                         strength *= (1.0 if is_bull else 0.8)  # trend bonus
+                        if buy_decay < 1.0:
+                            strength *= buy_decay ** idx
                         if strength > best_strength:
                             best_strength = strength; want_buy = True; want_sell = False
                         break
 
             # sell rung checks
             if allow_sell and best_strength < 1.0:
-                for lvl in (l for l in self._levels if l >= self._center):
+                for idx, lvl in enumerate(sell_levels):
                     if px <= lvl * (1.0 + tol_s_hi) and px >= lvl * (1.0 - tol_s_lo):
                         dist = abs(px - lvl) / max(px, 1e-12)
                         strength = float(np.clip(1.0 - (dist / max(eff, 1e-6)), 0.0, 1.0))
                         # reduce eager profit taking in strong bull
                         strength *= (0.9 if is_bull else 1.0)
+                        if sell_decay < 1.0:
+                            strength *= sell_decay ** idx
                         if strength > best_strength:
                             best_strength = strength; want_buy = False; want_sell = True
                         break
@@ -242,7 +295,9 @@ class GridTradingStrategyV2(BaseStrategy):
         # Tight bounds to keep optimizer from degenerate configs
         return {
             'min_step_pct': (0.012, 0.04),
-            'atr_mult': (0.6, 1.8),
+            'atr_mult': (0.5, 5.0),
+            'buy_atr_mult': (0.5, 5.0),
+            'sell_atr_mult': (0.5, 5.0),
             'num_grids': (6, 20),
             'trend_ema_fast': (20, 80),
             'trend_ema_slow': (100, 400),
@@ -259,5 +314,9 @@ class GridTradingStrategyV2(BaseStrategy):
             'tol_buy_hi': (0.002, 0.02),
             'tol_sell_lo': (0.002, 0.02),
             'tol_sell_hi': (0.005, 0.02),
+            'regime_enabled': (0, 1),
+            'regime_ma_period': (40, 240),
+            'regime_buffer_pct': (0.0, 0.03),
+            'buy_level_decay': (0.5, 1.0),
+            'sell_level_decay': (0.6, 1.0),
         }
-

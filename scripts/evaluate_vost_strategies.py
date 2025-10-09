@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional
 
+import logging
+
 import numpy as np
 import pandas as pd
 
@@ -74,6 +76,11 @@ def _bucket_for_notional(costs: Dict[str, Dict[int, Dict[str, float]]], notional
     for key in keys:
         if notional <= key:
             return key
+    logging.warning(
+        "Trade notional $%.2f exceeds largest swap-cost bucket ($%.2f); using largest bucket values.",
+        notional,
+        keys[-1],
+    )
     return keys[-1]
 
 
@@ -95,145 +102,6 @@ def lookup_roundtrip_cost(costs: Dict[str, Dict[int, Dict[str, float]]], notiona
     return per_side_cost(costs, notional, 'buy') + per_side_cost(costs, notional, 'sell')
 
 
-def _legacy_run_strategy(
-    strategy,
-    data: pd.DataFrame,
-    *,
-    swap_costs: Dict[str, Dict[int, Dict[str, float]]],
-    trade_notional: float,
-) -> Dict:
-    enriched = strategy.calculate_indicators(data.copy())
-    signals = strategy.generate_signals(enriched)
-
-    buy_signal = signals.get('buy_signal', pd.Series(False, index=signals.index)).astype(bool)
-    sell_signal = signals.get('sell_signal', pd.Series(False, index=signals.index)).astype(bool)
-
-    buy_exec = buy_signal.shift(1, fill_value=False)
-    sell_exec = sell_signal.shift(1, fill_value=False)
-
-    position = np.zeros(len(signals), dtype=int)
-    pos = 0
-    for i in range(len(signals)):
-        if pos == 0 and buy_exec.iat[i]:
-            pos = 1
-        elif pos == 1 and sell_exec.iat[i]:
-            pos = 0
-        position[i] = pos
-
-    close = data['price'] if 'price' in data.columns else data['close']
-    returns = close.pct_change().fillna(0.0).to_numpy()
-
-    strat_returns = position * returns
-
-    position_shift = np.roll(position, 1)
-    position_shift[0] = 0
-    entries = (position > position_shift)
-    exits = (position < position_shift)
-
-    buy_cost_frac = per_side_cost_fraction(swap_costs, trade_notional, 'buy')
-    sell_cost_frac = per_side_cost_fraction(swap_costs, trade_notional, 'sell')
-    strat_returns = strat_returns - buy_cost_frac * entries.astype(float) - sell_cost_frac * exits.astype(float)
-
-    equity_curve = (1.0 + strat_returns).cumprod()
-
-    total_return = float(equity_curve[-1] - 1.0)
-    num_bars = len(data)
-    annual_factor = FIVE_MINUTES_PER_YEAR / max(num_bars, 1)
-    cagr = float((equity_curve[-1] ** annual_factor) - 1.0)
-
-    rolling_peak = np.maximum.accumulate(equity_curve)
-    drawdowns = equity_curve / rolling_peak - 1.0
-    max_drawdown = float(drawdowns.min())
-
-    mean_per_bar = strat_returns.mean()
-    std_per_bar = strat_returns.std(ddof=0)
-    sharpe = float(mean_per_bar / std_per_bar * np.sqrt(FIVE_MINUTES_PER_YEAR)) if std_per_bar > 0 else 0.0
-
-    downside = strat_returns[strat_returns < 0]
-    if len(downside) > 0:
-        downside_std = downside.std(ddof=0)
-        sortino = float(mean_per_bar / downside_std * np.sqrt(FIVE_MINUTES_PER_YEAR)) if downside_std > 0 else 0.0
-    else:
-        sortino = 0.0
-
-    trade_returns: List[float] = []
-    in_trade = False
-    entry_equity = 1.0
-    for i in range(len(equity_curve)):
-        if entries[i] and not in_trade:
-            in_trade = True
-            entry_equity = equity_curve[i - 1] if i > 0 else 1.0
-        elif exits[i] and in_trade:
-            trade_returns.append(equity_curve[i] / entry_equity - 1.0)
-            in_trade = False
-
-    if in_trade:
-        trade_returns.append(equity_curve[-1] / entry_equity - 1.0)
-
-    num_trades = int(entries.sum())
-    win_rate = float(np.mean([r > 0 for r in trade_returns])) if trade_returns else 0.0
-
-    total_cost_frac = buy_cost_frac * entries.sum() + sell_cost_frac * exits.sum()
-    total_cost_pct = total_cost_frac * 100
-    total_cost_dai = total_cost_frac * trade_notional
-    avg_cost_per_trade_pct = (total_cost_pct / num_trades) if num_trades else 0.0
-
-    buy_hold_return = float(close.iloc[-1] / close.iloc[0] - 1.0)
-
-    # --- trade-level analytics ---
-    profits = [r for r in trade_returns if r > 0]
-    losses = [r for r in trade_returns if r < 0]
-    profitable_trades = len(profits)
-    losing_trades = len(losses)
-    avg_win_pct = float(np.mean(profits) * 100) if profits else 0.0
-    avg_loss_pct = float(np.mean(losses) * 100) if losses else 0.0
-    sum_losses = abs(float(np.sum(losses))) if losses else 0.0
-    profit_factor = float(np.sum(profits) / max(1e-9, sum_losses)) if profits else 0.0
-    max_dd_pct = max_drawdown * 100.0
-    total_return_pct = total_return * 100.0
-    recovery_factor = (
-        total_return_pct / max(1e-9, abs(max_dd_pct)) if max_dd_pct != 0 else 0.0
-    )
-    try:
-        if 'timestamp' in data.columns:
-            ts = pd.to_datetime(data['timestamp'])
-            duration_days = max(1, int((ts.iloc[-1] - ts.iloc[0]).days))
-        elif isinstance(data.index, pd.DatetimeIndex) and len(data.index) > 0:
-            duration_days = max(1, int((data.index[-1] - data.index[0]).days))
-        else:
-            duration_days = max(1, num_bars * 5 // (60 * 24))
-    except Exception:
-        duration_days = max(1, num_bars * 5 // (60 * 24))
-
-    return {
-        'total_return_pct': total_return_pct,
-        'buy_hold_return_pct': buy_hold_return * 100,
-        'cagr_pct': cagr * 100,
-        'max_drawdown_pct': max_dd_pct,
-        'sharpe': sharpe,
-        'sortino': sortino,
-        'sharpe_ratio': sharpe,
-        'sortino_ratio': sortino,
-        'num_trades': num_trades,
-        'win_rate_pct': win_rate * 100,
-        'total_trades': num_trades,
-        'profitable_trades': profitable_trades,
-        'losing_trades': losing_trades,
-        'avg_win_pct': avg_win_pct,
-        'avg_loss_pct': avg_loss_pct,
-        'profit_factor': profit_factor,
-        'recovery_factor': recovery_factor,
-        'duration_days': duration_days,
-        'total_cost_pct': total_cost_pct,
-        'total_cost_dai': total_cost_dai,
-        'avg_cost_per_trade_pct': avg_cost_per_trade_pct,
-        'equity_curve': equity_curve,
-        'strategy_returns': strat_returns,
-        'trade_returns': trade_returns,
-        'final_balance': float(1000.0 * equity_curve[-1]),
-        'initial_balance': 1000.0,
-    }
-
 
 def run_strategy(
     strategy,
@@ -249,73 +117,76 @@ def run_strategy(
     buy_signal = signals.get('buy_signal', pd.Series(False, index=signals.index)).astype(bool)
     sell_signal = signals.get('sell_signal', pd.Series(False, index=signals.index)).astype(bool)
 
-    buy_exec = buy_signal.shift(1, fill_value=False)
-    sell_exec = sell_signal.shift(1, fill_value=False)
-
-    price_series = data['price'] if 'price' in data.columns else data['close']
-    price_series = price_series.astype(float).reset_index(drop=True)
-
-    timestamp_series: Optional[pd.Series]
-    if 'timestamp' in data.columns:
-        timestamp_series = pd.to_datetime(data['timestamp']).reset_index(drop=True)
-    elif isinstance(data.index, pd.DatetimeIndex):
-        timestamp_series = pd.Series(pd.to_datetime(data.index).to_numpy())
-        timestamp_series = timestamp_series.reset_index(drop=True)
-    else:
-        timestamp_series = None
+    close_series = data['close'] if 'close' in data.columns else data['price']
+    open_series = data['open'] if 'open' in data.columns else close_series
 
     cash = float(trade_notional)
     tokens = 0.0
+    total_cost_dai = 0.0
+    total_notional = 0.0
+    equity_high = cash
+    max_drawdown_observed = 0.0
+    drawdown_tripped = False
+    max_drawdown_cap: Optional[float] = None
+    if hasattr(strategy, 'parameters'):
+        cap_val = strategy.parameters.get('max_equity_drawdown_pct')
+        if cap_val is not None:
+            try:
+                max_drawdown_cap = float(cap_val)
+            except (TypeError, ValueError):
+                max_drawdown_cap = None
+    if max_drawdown_cap is None and hasattr(strategy, 'max_equity_drawdown_pct'):
+        try:
+            max_drawdown_cap = float(getattr(strategy, 'max_equity_drawdown_pct'))
+        except (TypeError, ValueError):
+            max_drawdown_cap = None
+    if max_drawdown_cap is not None:
+        if max_drawdown_cap <= 0:
+            max_drawdown_cap = None
+        else:
+            max_drawdown_cap = min(max_drawdown_cap, 0.99)
+
     equity_history: List[float] = []
     trade_returns: List[float] = []
+    trade_log: List[Dict[str, Any]] = []
+
     profitable_trades = 0
     losing_trades = 0
     positive_sum = 0.0
     negative_sum = 0.0
-    total_cost_dai = 0.0
-    entry_equity: Optional[float] = None
-    open_trade: Optional[Dict[str, Any]] = None
-    trade_log: List[Dict[str, Any]] = [] if capture_trades else []
 
-    for i in range(len(signals)):
-        price = float(price_series.iloc[i])
-        equity_before = cash + tokens * price
+    in_trade = False
+    entry_equity = None
+    pending_trade: Optional[Dict[str, Any]] = None
 
-        if buy_exec.iloc[i] and tokens == 0 and cash > 0:
-            notional = cash
-            cost_buy = per_side_cost(swap_costs, notional, 'buy')
-            total_cost_dai += cost_buy
-            spendable = cash - cost_buy
-            if spendable > 0:
-                entry_equity = equity_before
-                tokens_acquired = spendable / price
-                tokens = tokens_acquired
-                cash = 0.0
-                if capture_trades:
-                    open_trade = {
-                        'entry_index': int(i),
-                        'entry_price': price,
-                        'entry_equity_dai': float(entry_equity),
-                        'notional_committed_dai': float(spendable),
-                        'cost_buy_dai': float(cost_buy),
-                        'tokens_acquired': float(tokens_acquired),
-                    }
-                    if timestamp_series is not None:
-                        entry_ts = timestamp_series.iloc[i]
-                        open_trade['entry_time'] = pd.Timestamp(entry_ts).isoformat()
-                else:
-                    open_trade = None
+    executed_buys: List[bool] = []
+    executed_sells: List[bool] = []
 
-        if sell_exec.iloc[i] and tokens > 0:
-            notional = tokens * price
-            cost_sell = per_side_cost(swap_costs, notional, 'sell')
-            total_cost_dai += cost_sell
-            proceeds = max(0.0, notional - cost_sell)
+    for i in range(len(data) - 1):
+        price_now = float(close_series.iloc[i])
+        equity_now = cash + tokens * price_now
+        equity_history.append(equity_now)
+
+        if max_drawdown_cap is not None and equity_high > 0:
+            drawdown_now = (equity_now - equity_high) / equity_high
+            max_drawdown_observed = min(max_drawdown_observed, drawdown_now)
+            if drawdown_now <= -max_drawdown_cap:
+                drawdown_tripped = True
+        if equity_now > equity_high:
+            equity_high = equity_now
+
+        # Forced liquidation at current close if circuit breaker tripped
+        if drawdown_tripped and tokens > 0:
+            notional = tokens * price_now
+            cost = per_side_cost(swap_costs, notional, 'sell')
+            proceeds = max(notional - cost, 0.0)
             cash += proceeds
-            tokens = 0.0
-            if entry_equity is not None and entry_equity > 0:
-                exit_equity = cash
-                trade_roi = exit_equity / entry_equity - 1.0
+            total_cost_dai += cost
+            total_notional += notional
+
+            equity_after = cash
+            if in_trade and entry_equity and entry_equity > 0.0:
+                trade_roi = equity_after / entry_equity - 1.0
                 trade_returns.append(trade_roi)
                 if trade_roi > 0:
                     profitable_trades += 1
@@ -323,39 +194,107 @@ def run_strategy(
                 elif trade_roi < 0:
                     losing_trades += 1
                     negative_sum += trade_roi
-                if capture_trades and open_trade is not None:
-                    open_trade.update(
-                        {
-                            'exit_index': int(i),
-                            'exit_price': price,
-                            'exit_equity_dai': float(exit_equity),
-                            'cost_sell_dai': float(cost_sell),
-                            'proceeds_dai': float(proceeds),
-                            'return_pct': float(trade_roi * 100),
-                            'holding_bars': int(i - open_trade.get('entry_index', i)),
-                        }
-                    )
-                    if timestamp_series is not None:
-                        exit_ts = timestamp_series.iloc[i]
-                        open_trade['exit_time'] = pd.Timestamp(exit_ts).isoformat()
-                    trade_log.append(open_trade)
-                open_trade = None
+            in_trade = False
             entry_equity = None
+            tokens = 0.0
 
-        equity_after = cash + tokens * price
-        equity_history.append(equity_after)
+            if capture_trades and pending_trade is not None:
+                pending_trade.update(
+                    {
+                        'exit_index': i,
+                        'exit_price': price_now,
+                        'cost_sell_dai': cost,
+                        'proceeds_dai': proceeds,
+                        'return_pct': trade_roi * 100 if 'trade_roi' in locals() else 0.0,
+                    }
+                )
+                trade_log.append(pending_trade)
+                pending_trade = None
+
+            equity_history[-1] = cash
+            executed_buys.append(False)
+            executed_sells.append(True)
+            continue
+
+        exec_price = float(open_series.iloc[i + 1])
+
+        buy_executed = False
+        sell_executed = False
+
+        if tokens <= 0 and buy_signal.iat[i] and cash > 0.0 and not drawdown_tripped:
+            notional = cash
+            cost = per_side_cost(swap_costs, notional, 'buy')
+            effective_cash = cash - cost
+            if effective_cash > 0.0:
+                tokens = effective_cash / exec_price
+                cash = 0.0
+                total_cost_dai += cost
+                total_notional += notional
+                in_trade = True
+                entry_equity = equity_now
+                buy_executed = True
+                if capture_trades:
+                    pending_trade = {
+                        'entry_index': i + 1,
+                        'entry_price': exec_price,
+                        'cost_buy_dai': cost,
+                        'notional_committed_dai': notional,
+                    }
+
+        forced_liquidation = drawdown_tripped and tokens > 0
+        if tokens > 0 and (sell_signal.iat[i] or forced_liquidation):
+            notional = tokens * exec_price
+            cost = per_side_cost(swap_costs, notional, 'sell')
+            proceeds = max(notional - cost, 0.0)
+            cash += proceeds
+            total_cost_dai += cost
+            total_notional += notional
+            sell_executed = True
+
+            equity_after = cash
+            if in_trade and entry_equity and entry_equity > 0.0:
+                trade_roi = equity_after / entry_equity - 1.0
+                trade_returns.append(trade_roi)
+                if trade_roi > 0:
+                    profitable_trades += 1
+                    positive_sum += trade_roi
+                elif trade_roi < 0:
+                    losing_trades += 1
+                    negative_sum += trade_roi
+            in_trade = False
+            entry_equity = None
+            tokens = 0.0
+
+            if capture_trades and pending_trade is not None:
+                pending_trade.update(
+                    {
+                        'exit_index': i + 1,
+                        'exit_price': exec_price,
+                        'cost_sell_dai': cost,
+                        'proceeds_dai': proceeds,
+                        'return_pct': trade_roi * 100 if 'trade_roi' in locals() else 0.0,
+                    }
+                )
+                trade_log.append(pending_trade)
+                pending_trade = None
+
+        executed_buys.append(buy_executed)
+        executed_sells.append(sell_executed)
+
+    final_price = float(close_series.iloc[-1])
+    final_equity = cash + tokens * final_price
+    equity_history.append(final_equity)
 
     if tokens > 0:
-        price = float(price_series.iloc[-1])
-        notional = tokens * price
-        cost_sell = per_side_cost(swap_costs, notional, 'sell')
-        total_cost_dai += cost_sell
-        proceeds = max(0.0, notional - cost_sell)
+        notional = tokens * final_price
+        cost = per_side_cost(swap_costs, notional, 'sell')
+        proceeds = max(notional - cost, 0.0)
         cash += proceeds
-        tokens = 0.0
-        if entry_equity is not None and entry_equity > 0:
-            exit_equity = cash
-            trade_roi = exit_equity / entry_equity - 1.0
+        total_cost_dai += cost
+        total_notional += notional
+        equity_after = cash
+        if in_trade and entry_equity and entry_equity > 0.0:
+            trade_roi = equity_after / entry_equity - 1.0
             trade_returns.append(trade_roi)
             if trade_roi > 0:
                 profitable_trades += 1
@@ -363,61 +302,71 @@ def run_strategy(
             elif trade_roi < 0:
                 losing_trades += 1
                 negative_sum += trade_roi
-            if capture_trades and open_trade is not None:
-                open_trade.update(
-                    {
-                        'exit_index': int(len(signals) - 1),
-                        'exit_price': float(price),
-                        'exit_equity_dai': float(exit_equity),
-                        'cost_sell_dai': float(cost_sell),
-                        'proceeds_dai': float(proceeds),
-                        'return_pct': float(trade_roi * 100),
-                        'holding_bars': int(len(signals) - 1 - open_trade.get('entry_index', len(signals) - 1)),
-                    }
-                )
-                if timestamp_series is not None:
-                    exit_ts = timestamp_series.iloc[-1]
-                    open_trade['exit_time'] = pd.Timestamp(exit_ts).isoformat()
-                trade_log.append(open_trade)
-            open_trade = None
+        tokens = 0.0
+        in_trade = False
         entry_equity = None
-        equity_history[-1] = cash
+        if capture_trades and pending_trade is not None:
+            pending_trade.update(
+                {
+                    'exit_index': len(data) - 1,
+                    'exit_price': final_price,
+                    'cost_sell_dai': cost,
+                    'proceeds_dai': proceeds,
+                    'return_pct': trade_roi * 100 if 'trade_roi' in locals() else 0.0,
+                }
+            )
+            trade_log.append(pending_trade)
+            pending_trade = None
 
-    equity_series = pd.Series(equity_history)
-    strat_returns = equity_series.pct_change().fillna(0.0).to_numpy()
+    equity_history[-1] = cash
 
-    total_return = float(equity_series.iloc[-1] / max(1e-9, equity_series.iloc[0]) - 1.0)
-    num_bars = len(equity_series)
-    annual_factor = FIVE_MINUTES_PER_YEAR / max(num_bars, 1)
-    cagr = float((equity_series.iloc[-1] / max(1e-9, equity_series.iloc[0])) ** annual_factor - 1.0)
+    equity_array = np.array(equity_history)
+    strat_returns = np.zeros_like(equity_array)
+    strat_returns[1:] = np.diff(equity_array) / np.maximum(equity_array[:-1], 1e-9)
 
-    rolling_peak = np.maximum.accumulate(equity_series.to_numpy())
-    drawdowns = equity_series.to_numpy() / rolling_peak - 1.0
+    total_return = float(equity_array[-1] / max(equity_array[0], 1e-9) - 1.0)
+    num_bars = len(equity_array)
+    annual_factor = FIVE_MINUTES_PER_YEAR / max(num_bars - 1, 1)
+    cagr = float((equity_array[-1] / max(equity_array[0], 1e-9)) ** annual_factor - 1.0)
+
+    rolling_peak = np.maximum.accumulate(equity_array)
+    drawdowns = equity_array / np.maximum(rolling_peak, 1e-9) - 1.0
     max_drawdown = float(drawdowns.min())
+    max_duration_bars = 0
+    current_start = None
+    for idx, dd in enumerate(drawdowns):
+        if dd < 0:
+            if current_start is None:
+                current_start = idx
+            duration = idx - current_start
+            if duration > max_duration_bars:
+                max_duration_bars = duration
+        else:
+            current_start = None
+    max_drawdown_duration_days = (max_duration_bars * 5.0) / (60.0 * 24.0)
 
     mean_per_bar = strat_returns.mean()
     std_per_bar = strat_returns.std(ddof=0)
     sharpe = float(mean_per_bar / std_per_bar * np.sqrt(FIVE_MINUTES_PER_YEAR)) if std_per_bar > 0 else 0.0
 
     downside = strat_returns[strat_returns < 0]
-    if len(downside) > 0:
-        downside_std = downside.std(ddof=0)
-        sortino = float(mean_per_bar / downside_std * np.sqrt(FIVE_MINUTES_PER_YEAR)) if downside_std > 0 else 0.0
-    else:
-        sortino = 0.0
+    downside_std = downside.std(ddof=0) if len(downside) > 0 else 0.0
+    sortino = float(mean_per_bar / downside_std * np.sqrt(FIVE_MINUTES_PER_YEAR)) if downside_std > 0 else 0.0
 
+    wins = [r for r in trade_returns if r > 0]
+    losses = [r for r in trade_returns if r < 0]
     num_trades = len(trade_returns)
-    win_rate = float(np.mean([r > 0 for r in trade_returns])) * 100 if trade_returns else 0.0
-    avg_win_pct = (positive_sum / max(1, profitable_trades)) * 100 if profitable_trades else 0.0
-    avg_loss_pct = (negative_sum / max(1, losing_trades)) * 100 if losing_trades else 0.0
-    sum_losses = abs(float(negative_sum)) if trade_returns else 0.0
-    profit_factor = float(positive_sum / max(1e-9, sum_losses)) if sum_losses > 0 else (float('inf') if positive_sum > 0 else 0.0)
-    recovery_factor = (total_return * 100) / max(1e-9, abs(max_drawdown * 100)) if max_drawdown != 0 else 0.0
+    win_rate_pct = len(wins) / num_trades * 100 if num_trades else 0.0
+    avg_win_pct = np.mean(wins) * 100 if wins else 0.0
+    avg_loss_pct = np.mean(losses) * 100 if losses else 0.0
+    profit_factor = (positive_sum / max(1e-9, abs(negative_sum))) if negative_sum != 0 else (float('inf') if positive_sum > 0 else 0.0)
+    recovery_factor = total_return / max(1e-9, abs(max_drawdown)) if max_drawdown != 0 else float('inf')
 
-    total_cost_pct = (total_cost_dai / max(1e-9, trade_notional)) * 100.0
-    avg_cost_per_trade_pct = (total_cost_pct / num_trades) if num_trades else 0.0
-    buy_hold_return = float(price_series.iloc[-1] / price_series.iloc[0] - 1.0)
-    buy_hold_series = price_series / max(1e-9, float(price_series.iloc[0]))
+    total_cost_pct = (total_cost_dai / max(1e-9, total_notional)) * 100
+    avg_cost_per_trade_pct = total_cost_pct / max(num_trades, 1)
+
+    buy_hold_return = float(close_series.iloc[-1] / max(close_series.iloc[0], 1e-9) - 1.0)
+    buy_hold_series = close_series / max(1e-9, float(close_series.iloc[0]))
     buy_hold_peak = np.maximum.accumulate(buy_hold_series.to_numpy())
     buy_hold_drawdowns = buy_hold_series.to_numpy() / buy_hold_peak - 1.0
     buy_hold_max_drawdown = float(buy_hold_drawdowns.min())
@@ -428,7 +377,16 @@ def run_strategy(
     elif isinstance(data.index, pd.DatetimeIndex) and len(data.index) > 0:
         duration_days = max(1, int((data.index[-1] - data.index[0]).days))
     else:
-        duration_days = max(1, int(len(price_series) * 5 / (60 * 24)))
+        duration_days = max(1, int(len(close_series) * 5 / (60 * 24)))
+
+    avg_buy_step_pct = None
+    avg_sell_step_pct = None
+    buy_samples = getattr(strategy, '_buy_step_samples', None)
+    sell_samples = getattr(strategy, '_sell_step_samples', None)
+    if buy_samples:
+        avg_buy_step_pct = float(np.mean(buy_samples) * 100.0)
+    if sell_samples:
+        avg_sell_step_pct = float(np.mean(sell_samples) * 100.0)
 
     payload = {
         'total_return_pct': total_return * 100,
@@ -436,15 +394,16 @@ def run_strategy(
         'buy_hold_max_drawdown_pct': buy_hold_max_drawdown * 100,
         'cagr_pct': cagr * 100,
         'max_drawdown_pct': max_drawdown * 100,
+        'max_drawdown_duration_days': max_drawdown_duration_days,
         'sharpe': sharpe,
         'sortino': sortino,
         'sharpe_ratio': sharpe,
         'sortino_ratio': sortino,
         'num_trades': num_trades,
-        'win_rate_pct': win_rate,
+        'win_rate_pct': win_rate_pct,
         'total_trades': num_trades,
-        'profitable_trades': profitable_trades,
-        'losing_trades': losing_trades,
+        'profitable_trades': len(wins),
+        'losing_trades': len(losses),
         'avg_win_pct': avg_win_pct,
         'avg_loss_pct': avg_loss_pct,
         'profit_factor': profit_factor,
@@ -453,13 +412,23 @@ def run_strategy(
         'total_cost_pct': total_cost_pct,
         'total_cost_dai': total_cost_dai,
         'avg_cost_per_trade_pct': avg_cost_per_trade_pct,
-        'equity_curve': equity_series.to_numpy(),
+        'equity_curve': equity_array,
         'strategy_returns': strat_returns,
         'trade_returns': trade_returns,
-        'final_balance': float(equity_series.iloc[-1]),
-        'initial_balance': float(equity_series.iloc[0]),
+        'final_balance': float(equity_array[-1]),
+        'initial_balance': float(equity_array[0]),
     }
-    if capture_trades:
+    if avg_buy_step_pct is not None:
+        payload['avg_buy_step_pct'] = avg_buy_step_pct
+        payload['buy_step_sample_count'] = len(buy_samples)
+    if avg_sell_step_pct is not None:
+        payload['avg_sell_step_pct'] = avg_sell_step_pct
+        payload['sell_step_sample_count'] = len(sell_samples)
+    if max_drawdown_cap is not None:
+        payload['max_equity_drawdown_pct_observed'] = max_drawdown_observed * 100
+        payload['drawdown_circuit_tripped'] = drawdown_tripped
+
+    if capture_trades and trade_log:
         payload['trades'] = trade_log
 
     return payload

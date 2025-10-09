@@ -8,6 +8,7 @@ import numpy as np
 from typing import Dict, Tuple
 import talib
 from strategies.base_strategy import BaseStrategy
+from .indicator_utils import compute_adx, compute_multi_timeframe_adx, compute_atr
 import logging
 
 logger = logging.getLogger(__name__)
@@ -373,7 +374,15 @@ class Strategy_62_RSIAvgs(BaseStrategy):
             'ma_periods': [5, 10, 20],
             'overbought': 70,
             'oversold': 30,
-            'signal_threshold': 0.6
+            'signal_threshold': 0.6,
+            'adx_period': 14,
+            'adx_htf_period': 14,
+            'adx_htf_minutes': 60,
+            'adx_range_threshold': 22.0,
+            'atr_period': 14,
+            'atr_stop_mult': 1.5,
+            'atr_floor_pct': 0.0015,
+            'time_stop_bars': 12,
         }
         if parameters:
             default_params.update(parameters)
@@ -400,28 +409,94 @@ class Strategy_62_RSIAvgs(BaseStrategy):
         # RSI trend based on MA slope
         df['rsi_trend'] = df['rsi_ma_avg'] - df['rsi_ma_avg'].shift(3)
         
+        high = df['high'] if 'high' in df.columns else df['close']
+        low = df['low'] if 'low' in df.columns else df['close']
+        close = df['close']
+
+        adx_df = compute_adx(high, low, close, int(self.parameters['adx_period']))
+        df['adx'] = adx_df['adx']
+        df['adx_htf'] = compute_multi_timeframe_adx(
+            df[['timestamp', 'open', 'high', 'low', 'close']].copy(),
+            period=int(self.parameters['adx_htf_period']),
+            timeframe_minutes=int(self.parameters['adx_htf_minutes']),
+        )
+        adx_threshold = float(self.parameters['adx_range_threshold'])
+        df['is_range'] = (df['adx'] <= adx_threshold) & (df['adx_htf'] <= adx_threshold)
+
+        atr_period = int(self.parameters['atr_period'])
+        atr_series = compute_atr(high, low, close, atr_period)
+        atr_floor = float(self.parameters['atr_floor_pct'])
+        if atr_floor > 0:
+            atr_series = atr_series.clip(lower=close * atr_floor)
+        df['atr'] = atr_series
+
         return df
     
     def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
         df = data.copy()
-        
-        overbought = self.parameters['overbought']
-        oversold = self.parameters['oversold']
-        
-        # Buy when RSI crosses above oversold and trend is up
-        df['buy_signal'] = (df['rsi'] > oversold) & \
-                          (df['rsi'].shift(1) <= oversold) & \
-                          (df['rsi_trend'] > 0)
-        
-        # Sell when RSI crosses below overbought and trend is down
-        df['sell_signal'] = (df['rsi'] < overbought) & \
-                           (df['rsi'].shift(1) >= overbought) & \
-                           (df['rsi_trend'] < 0)
-        
-        # Signal strength based on RSI position and trend
-        df['signal_strength'] = (np.abs(df['rsi'] - 50) / 50) * \
-                               (np.abs(df['rsi_trend']).clip(0, 10) / 10)
-        
+
+        overbought = float(self.parameters['overbought'])
+        oversold = float(self.parameters['oversold'])
+        atr_mult = float(self.parameters['atr_stop_mult'])
+        time_stop_bars = int(self.parameters.get('time_stop_bars', 0))
+
+        df['buy_signal'] = False
+        df['sell_signal'] = False
+        df['signal_strength'] = 0.0
+
+        rsi = df['rsi'].to_numpy(float)
+        rsi_trend = df['rsi_trend'].to_numpy(float)
+        close = df['close'].to_numpy(float)
+        atr = df.get('atr', pd.Series(np.nan, index=df.index)).to_numpy(float)
+        range_mask = df.get('is_range', pd.Series(True, index=df.index)).to_numpy(bool)
+
+        in_position = False
+        entry_price = 0.0
+        bars_in_trade = 0
+
+        for i in range(len(df)):
+            if not in_position:
+                if not range_mask[i]:
+                    continue
+                if (
+                    rsi[i] > oversold
+                    and rsi[i - 1] <= oversold if i > 0 else False
+                    and rsi_trend[i] > 0
+                ):
+                    df.iat[i, df.columns.get_loc('buy_signal')] = True
+                    df.iat[i, df.columns.get_loc('signal_strength')] = min(
+                        1.0, abs(rsi[i] - 50) / 50.0
+                    )
+                    in_position = True
+                    entry_price = close[i]
+                    bars_in_trade = 0
+            else:
+                bars_in_trade += 1
+                stop_price = entry_price - atr_mult * atr[i] if not np.isnan(atr[i]) else entry_price * 0.97
+                take_profit = entry_price + atr_mult * atr[i] * 1.5 if not np.isnan(atr[i]) else entry_price * 1.03
+
+                sell = False
+                strength = 0.5
+                if rsi[i] < overbought and (i > 0 and rsi[i - 1] >= overbought) and rsi_trend[i] < 0:
+                    sell = True
+                    strength = 1.0
+                elif close[i] <= stop_price:
+                    sell = True
+                    strength = 0.6
+                elif close[i] >= take_profit:
+                    sell = True
+                    strength = 0.8
+                elif time_stop_bars > 0 and bars_in_trade >= time_stop_bars:
+                    sell = True
+                    strength = 0.5
+
+                if sell or not range_mask[i]:
+                    df.iat[i, df.columns.get_loc('sell_signal')] = True
+                    df.iat[i, df.columns.get_loc('signal_strength')] = strength
+                    in_position = False
+                    entry_price = 0.0
+                    bars_in_trade = 0
+
         return df
 
 

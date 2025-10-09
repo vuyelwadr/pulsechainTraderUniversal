@@ -134,8 +134,8 @@ reports/*
 reports*/
 reports*/**
 !reports/
-!reports/optimizer_run_*/
-!reports/optimizer_run_*/**
+# !reports/optimizer_run_*/
+# !reports/optimizer_run_*/**
 !reports/gridTradeAggressive
 reports/gridTradeAggressive/*
 !reports/gridTradeAggressive/best_current

@@ -42,6 +42,7 @@ import sys
 import json
 import gzip
 import logging
+import math
 from dataclasses import dataclass
 import subprocess
 from datetime import datetime
@@ -1154,6 +1155,30 @@ def score_from_results(
     if objective == 'final_balance':
         final_balance = float(results.get('final_balance', 0.0) or 0.0)
         return final_balance, {'final_balance': final_balance}
+    if objective == 'return_dd_ratio':
+        total_return_pct = float(results.get('total_return_pct', 0.0) or 0.0)
+        max_drawdown_pct = abs(float(results.get('max_drawdown_pct', 0.0) or 0.0))
+        total_trades = int(results.get('total_trades', 0) or 0)
+        min_return_pct = 5.0
+        ratio_denominator = max(1.0, max_drawdown_pct)
+        raw_ratio = total_return_pct / ratio_denominator if ratio_denominator > 0 else 0.0
+        if total_trades > 1:
+            trade_count_scaler = min(1.0, math.log(total_trades) / math.log(50.0))
+        else:
+            trade_count_scaler = 0.0
+        score = raw_ratio * trade_count_scaler
+        if total_return_pct < min_return_pct:
+            score = 0.0
+        comps = {
+            'return_dd_ratio': float(score),
+            'raw_ratio': float(raw_ratio),
+            'trade_count_scaler': float(trade_count_scaler),
+            'total_return_pct': total_return_pct,
+            'max_drawdown_pct': max_drawdown_pct,
+            'max_drawdown_duration_days': float(results.get('max_drawdown_duration_days', 0.0) or 0.0),
+            'total_trades': total_trades,
+        }
+        return float(score), comps
     if objective == 'cps':
         scorer = CompositePerformanceScorer(buy_hold_return=bh)
         out = scorer.calculate_cps(metrics)
