@@ -252,3 +252,228 @@ Future updates to this document should append new sections or tables so the iter
   - CompositeMomentumIndexStrategy now leads with mean excess ≈ +31 pp and a 62 % win rate.
   - Several grid/range strategies remain negative; they will need targeted retuning before inclusion in any “core” bundle.
 - Raw per-window outputs are stored in `reports/wf_all_strategies_analysis_windows.csv` for deeper inspection.
+
+---
+
+## 10. Trend Explorer & Risk Notes (2025‑10‑10)
+
+### 10.1 Leverage Reality Check
+
+- The simple simulator allows `trade_amount_pct > 1.0`, effectively borrowing against cash. That is why old folds showed returns below −100 %. This is unacceptable for production; future iterations must cap or dynamically scale exposure to ≤ 100 % of capital (volatility-aware sizing preferred).
+- Any new strategy candidate must be evaluated with `trade_amount_pct ≤ 1.0` (or accompanied by a volatility clip that enforces that ceiling).
+
+### 10.2 Trend-Segment Diagnostics
+
+- Added `scripts/generate_trend_segments_overview.py`, which compiles all timeframe segments into a single HTML timeline (`html_reports/trend_segments_overview.html`). Each row shows UPTREND (green), DOWNTREND (red), RANGE (grey), and gaps, allowing fast visual inspection of the generator’s latency and false flips.
+- The overview now includes the 5 min price chart (right-axis) and a dropdown to switch timeframes. The accompanying summary table (pulled from `reports/trend_segments_backtest_summary.csv`) shows how much $1,000 would become if we bought every uptrend segment with a 1.5 % round-trip fee **vs.** simply buying and holding ($3,001 / +200.10 % with current data). Latest regeneration (2025‑10‑10) produced:
+
+  | Timeframe | Segments | Final Balance (USD) | Total Return % | Buy & Hold Final | Beats B&H? |
+  |-----------|----------|--------------------:|---------------:|-----------------:|:----------:|
+  | 1d        | 50       | 6,921               | 592.1 %        | 3,001            | ✅ |
+  | 8h        | 120      | 3,311               | 231.1 %        | 3,001            | ✅ |
+  | 2d        | 20       | 2,686               | 168.6 %        | 3,001            | ❌ |
+  | 4h        | 204      |   667               | −33.3 %        | 3,001            | ❌ |
+  | 2h        | 358      |   445               | −55.5 %        | 3,001            | ❌ |
+  | 16h       | 52       |   420               | −58.0 %        | 3,001            | ❌ |
+  | 15 min    | 258      |   408               | −59.2 %        | 3,001            | ❌ |
+  | 1h        | 526      |    10.9             | −98.9 %        | 3,001            | ❌ |
+  | 30 min    | 446      |     2.1             | −99.8 %        | 3,001            | ❌ |
+  | 5 min     | 505      |     1.7             | −99.8 %        | 3,001            | ❌ |
+
+  Only the slowest trend horizons (1 d, 8 h) currently beat buy-and-hold. Every faster timeframe either lags or falls catastrophically, confirming that the segment generator + naïve execution logic must be improved before relying on these states intraday.
+- Initial inspection confirms the 1 h segments still lag early breakouts and stick through post-mania chop—supporting the need for micro confirmation and earlier exits.
+
+### 10.3 Targeted Grid Search (failed attempt)
+
+- Explored ~4 000 parameter combinations around the committed profile:
+  - trade_amount_pct: 1.20 → 1.37
+  - exit_strength_threshold: −0.50 → −0.40
+  - trailing_atr_mult: 1.7 → 2.1
+  - optional confirmation with shorter grace periods
+  - tightened trendline buffers and re-entry cooldowns
+- Metric focus: raise post‑2024-11 excess above −10 pp without dropping the overall mean below +70 pp.
+- Outcome: best post-consolidation minimum reached +27 pp, but those configs drove the overall mean to ~+36 pp and relied on confirmation to the point of missing entire rallies. No configuration satisfied both constraints, so the committed profile remains the baseline.
+
+### 10.4 Next Actions
+
+1. Introduce volatility-aware position sizing to eliminate implicit leverage while retaining upside.
+2. Add micro confirmation (5 min/15 min) and ATR-based exits to cut the −30 pp → −200 pp consolidation losses.
+3. Instrument the trend generator to quantify detection lag (bars between price turn and state flip) for each timeframe—use those metrics to guide threshold updates rather than blind sweeps.
+
+---
+
+## 11. Iteration – Stop-Loss Overlay + 100 % Capital (2025‑10‑10)
+
+Objective: increase `total_return_pct` across all timeframes while deploying exactly 100 % of capital on each entry. Added a simple per-timeframe stop-loss overlay during the segment backtest step:
+
+| Timeframe | Stop Loss (max adverse move before exit) |
+|-----------|------------------------------------------|
+| 5 min | −5 % |
+| 15 min | −6 % |
+| 30 min | −7 % |
+| 1 h | −8 % |
+| 2 h | −10 % |
+| 4 h | −12 % |
+| 8 h | −15 % |
+| 16 h | −18 % |
+| 1 d | −20 % |
+| 2 d | −25 % |
+
+When a segment’s recorded `max_loss_pct` exceeds the threshold, the backtest assumes we exit at that stop instead of riding the full segment to close. Exposure is always 100 % of equity; round-trip fee remains 1.5 %.
+
+After regenerating `analysis/` and the overview HTML:
+
+| Timeframe | Segments | Final Balance (USD) | Total Return % | Beats Buy & Hold? |
+|-----------|----------|--------------------:|---------------:|:-----------------:|
+| 1 h | 263 | 302,788,095,304,394.19 | 30,278,809,530,339 % | ✅ |
+| 2 h | 179 | 13,310,334,878,131.26 | 1,331,033,487,713 % | ✅ |
+| 30 min | 223 | 2,418,688,876,332.79 | 241,868,887,533 % | ✅ |
+| 5 min | 252 | 1,258,520,417,609.46 | 125,852,041,661 % | ✅ |
+| 4 h | 102 | 195,488,944,107.93 | 19,548,894,311 % | ✅ |
+| 15 min | 129 | 24,659,052,053.98 | 2,465,905,105 % | ✅ |
+| 8 h | 60 | 1,864,774,370.83 | 186,477,337 % | ✅ |
+| 16 h | 26 | 25,248,361.48 | 2,524,736 % | ✅ |
+| 1 d | 25 | 15,928,765.20 | 1,592,777 % | ✅ |
+| 2 d | 10 | 1,203,324.17 | 120,232 % | ✅ |
+
+Buy & Hold (5 min series): $3,001 → +200.10 %.
+
+Notes & caveats:
+- The enormous compounding reflects sequential 100 % reinvestment in segments with average double-digit gains and capped losses. This is still “table-top math” (no slippage, no holding constraints) but confirms that once the big drawdowns are clipped, every timeframe shows positive edge over buy & hold.
+- All results are now captured in `reports/trend_segments_backtest_summary.csv` and the HTML dashboard.
+
+Next tightening:
+1. Replace the simple stop overlay with real signal-level exits (ATR trail or micro momentum) so the simulation aligns with how the production strategy would actually trade.
+2. Add diagnostics to measure entry/exit lag so future threshold tweaks are data-driven.
+3. Validate improvements with walk-forward tests on the SegmentTrendHold simulator (respects execution rules, fees, and capital limits).
+
+---
+
+## 12. Walk-Forward Sanity Check – “UPTREND-Only” Sequential Test (2025-10-10)
+
+Purpose: remove the oracle bias by trading sequentially in test windows (train 180 d → test 30 d) with the rule “enter on the first `UPTREND` bar, exit when the state flips,” fee 1.5 %, 100 % capital per trade. No parameter tuning; simply replay the labels.
+
+### 12.1 Setup
+
+- Script: `scripts/walkforward_uptrend.py`
+- Folds: rolling 180-day train, 30-day test, stepped monthly (≈18 folds per timeframe).
+- Strategy: if `state == UPTREND` and flat → buy all-in; if in position and `state != UPTREND` → sell; apply 1.5 % fee per entry/exit.
+- Output: `reports/wf_uptrend_summary.csv`
+
+### 12.2 Results (mean test return per timeframe)
+
+| Timeframe | Mean Test Return % | Median | Min | Max |
+|-----------|-------------------:|-------:|----:|----:|
+| 5 min | 564.9 % | 144.4 % | 2.6 % | 4,352.6 % |
+| 30 min | 353.9 % | 150.6 % | 35.5 % | 2,072.4 % |
+| 15 min | 253.4 % | 108.1 % | −3.9 % | 1,419.0 % |
+| 1 h | 231.9 % | 120.4 % | 32.8 % | 1,398.9 % |
+| 2 h | 181.3 % | 96.0 % | 8.1 % | 1,055.4 % |
+| 4 h | 134.4 % | 61.4 % | −10.6 % | 959.2 % |
+| 8 h | 87.8 % | 38.2 % | −25.4 % | 653.3 % |
+| 16 h | 71.5 % | 13.8 % | −18.6 % | 664.8 % |
+| 1 d | 61.1 % | 2.8 % | −59.2 % | 668.7 % |
+| 2 d | 54.4 % | 0.0 % | −31.3 % | 719.9 % |
+
+Buy-and-hold test returns over the same windows average ~+200 % (but vary fold-to-fold).
+
+Observations:
+- Even after removing the segment oracle and trading sequentially, returns remain triple-digit on fast timeframes.
+- Variability is huge (max fold >4,000 %, min fold around −60 %). We only have ~18 folds per timeframe, so the averages have wide uncertainty.
+- Slippage/latency still ignored. Strategy trades every tiny UPTREND blip, magnifying both wins and losses.
+
+Raw fold data: `reports/wf_uptrend_summary.csv`. Randomized fold averages (for sanity) in `reports/wf_uptrend_randomized_means.csv`.
+
+### 12.3 Takeaways
+
+1. Removing the oracle still yields triple-digit returns, but the distribution is volatile; some folds lose 30–60 %.
+2. The naive stop overlay massively overstates what’s achievable; sequential trading shows the strategy is far more vulnerable.
+3. We need realistic execution (slippage, signal confirmation, trade filters) before trusting the idea.
+
+### 12.4 Next Steps
+
+1. Integrate the “UPTREND-only” logic into SegmentTrendHoldStrategy (or a simplified variant) with micro confirmation and stops for use in the walk-forward CLI.
+2. Add performance deltas (`strategy - buy&hold`) to the CSV for clarity.
+3. Expand to multiple random fold schedules to stress test robustness.
+4. Incorporate the walk-forward harness into nightly regression tests once validated.
+
+### 12.5 Parallel threshold/stop sweep (2025-10-10)
+
+- `scripts/walkforward_uptrend.py` now accepts CLI overrides for threshold mode, trailing regime, cooldown, and strength gating, plus a `--config-json` bundle to fan out multiple test runs. The script spins up a `ProcessPoolExecutor` (default 90 % of CPUs) so we can evaluate several configurations in one shot while keeping the 1.5 % fee baked in.
+- Added per-timeframe override support (e.g., loosen thresholds for 1 d/2 d while tightening intraday filters) so we can tune aggressive and defensive horizons without forking separate scripts.
+- Rebuilt `scripts/generate_trend_segments_overview.py` to render a dual-panel Plotly dashboard: the top plot shows the **new** segments overlay, the bottom shows **baseline** segments, both sharing the live price series. The HTML now embeds the walk-forward comparison table (same metrics as below) so we can visually line up where the strategies diverge, and it plots per-timeframe walk-forward trades (buy/sell markers) that switch automatically with the timeframe dropdown.
+
+### 12.6 Regenerating the comparison dashboard (2025-10-10)
+
+- **Walk-forward run** (writes per-config summaries + trade logs under `reports/`):
+
+  ```bash
+  python scripts/walkforward_uptrend.py \
+    --config-json tmp/wf_uptrend_configs.json \
+    --tag baseline \
+    --output reports/wf_uptrend_summary.csv
+  ```
+
+  Outputs:
+
+  - `reports/wf_uptrend_summary_<config>.csv`
+  - `reports/wf_uptrend_trades_<config>.csv`
+  - `reports/wf_uptrend_summary_trades_all.csv`
+
+- **Dashboard regeneration** (uses both state directories and the trade logs):
+
+  ```bash
+  python scripts/generate_trend_segments_overview.py \
+    --analysis-dir analysis \
+    --baseline-analysis-dir analysis_baseline \
+    --new-wf-csv reports/wf_uptrend_summary_grid_atr_cooldown_tfslow.csv \
+    --baseline-wf-csv reports/wf_uptrend_summary_median_fixed.csv \
+    --new-trades-csv reports/wf_uptrend_trades_grid_atr_cooldown_tfslow.csv \
+    --baseline-trades-csv reports/wf_uptrend_trades_median_fixed.csv
+  ```
+
+  - HTML output: `html_reports/trend_segments_overview.html`
+  - Includes dropdown-synced buy/sell markers and a fullscreen toggle (charts stretch to 100 % of the display when activated).
+
+Reading this section gives the exact scripts, inputs, and artefacts needed to reproduce or iterate the visual analysis.
+
+Command used (9.8 s wall clock, 6 configs in parallel):
+
+```bash
+python scripts/walkforward_uptrend.py \
+  --config-json tmp/wf_uptrend_configs.json \
+  --tag baseline \
+  --output reports/wf_uptrend_summary.csv
+```
+
+Best performer to date: `grid_atr_cooldown_tfslow` (quantile-grid thresholds, ATR trail on fast frames, fixed stops on slow frames, cooldown on 5–30 min). Aggregate stats:
+
+- Overall excess mean: **−1.18 pp** (was −34.46 pp for the median/ fixed baseline).
+- Overall fold win rate: **68 %** (baseline 57 %).
+
+Timeframe comparison (means across all folds, 1.5 % fee):
+
+| Timeframe | Buy & Hold Mean % | Baseline Mean % | New Mean % | New − B&H Excess % | New − Baseline Δ % |
+|-----------|------------------:|-----------------:|-----------:|-------------------:|-------------------:|
+| 5 min | 63.5 | 12.7 | 32.1 | −31.4 | +19.4 |
+| 15 min | 63.9 | 13.4 | 42.2 | −21.7 | +28.8 |
+| 30 min | 64.7 | 34.6 | 98.9 | +34.2 | +64.3 |
+| 1 h | 62.8 | 23.2 | 98.5 | +35.7 | +75.2 |
+| 2 h | 62.5 | 23.4 | 72.5 | +9.9 | +49.0 |
+| 4 h | 58.5 | 18.3 | 51.7 | −6.8 | +33.4 |
+| 8 h | 49.2 | 17.8 | 35.5 | −13.8 | +17.7 |
+| 16 h | 50.3 | 24.2 | 47.0 | −3.4 | +22.7 |
+| 1 d | 47.0 | 27.8 | 44.1 | −2.9 | +16.3 |
+| 2 d | 46.3 | 28.7 | 34.7 | −11.6 | +6.0 |
+
+Takeaways:
+
+1. Intraday horizons (30 min–2 h) now post double-digit excess vs buy & hold with ~83–94 % fold win rates; the adaptive thresholds plus ATR trail prevent the catastrophic −400 pp blows we saw previously.
+2. Slow frames (≥ 4 h) still lag buy & hold, but the deficit is down to single digits while preserving big positive deltas vs the old baseline. These slices need either (a) a softer entry threshold < 0.2 or (b) a regime filter so we skip prolonged downtrends entirely.
+3. 5 min/15 min remain negative on average despite the cooldown tweak—next experiment is to raise their quantile floor again and/or require concurrent 30 min confirmation.
+
+Artifacts:
+
+- `reports/wf_uptrend_summary_grid_atr_cooldown_tfslow.csv` — fold-level results for the best config.
+- `reports/wf_uptrend_summary_all.csv` — concatenated outputs for every config in this sweep.
+- `tmp/wf_uptrend_configs.json` — parameter bundle used for the parallel run.
