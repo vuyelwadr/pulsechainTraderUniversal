@@ -130,9 +130,11 @@ deploy/
 .TemporaryItems
 .apdisk
 
-reports/*
-reports*/
-reports*/**
+# Allow verification data to be committed for transparency
+!reports/wf_uptrend_v8_*.csv
+!reports/verify_performance_claims.py
+!reports/debug_segment/NeuralAdaptiveStrategy_*.csv
+!reports/debug_segment/NeuralAdaptiveStrategy_*.png
 !reports/
 # !reports/optimizer_run_*/
 # !reports/optimizer_run_*/**
