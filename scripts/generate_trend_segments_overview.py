@@ -312,6 +312,124 @@ def load_walkforward_table(new_csv: Path, baseline_csv: Path) -> Optional[pd.Dat
     return df
 
 
+def load_fold_details(new_csv: Path, baseline_csv: Path) -> Optional[pd.DataFrame]:
+    """Load fold-by-fold details with buy-hold comparison"""
+    if not new_csv.exists() or not baseline_csv.exists():
+        return None
+    
+    new_df = pd.read_csv(new_csv)
+    base_df = pd.read_csv(baseline_csv)
+    
+    required_cols = {"timeframe", "total_return_pct", "buy_hold_total_return_pct", "fold_start", "fold_end"}
+    if not all(col in new_df.columns for col in required_cols) or not all(col in base_df.columns for col in required_cols):
+        return None
+    
+    # Merge dataframes on timeframe and fold identifiers
+    merged = new_df.merge(
+        base_df,
+        on=["timeframe", "fold_start", "fold_end"],
+        suffixes=("_new", "_baseline")
+    )
+    
+    # Calculate differences
+    merged["diff_new_vs_baseline_pct"] = merged["total_return_pct_new"] - merged["total_return_pct_baseline"]
+    merged["diff_new_vs_buyhold_pct"] = merged["total_return_pct_new"] - merged["buy_hold_total_return_pct_new"]
+    merged["diff_baseline_vs_buyhold_pct"] = merged["total_return_pct_baseline"] - merged["buy_hold_total_return_pct_baseline"]
+    
+    # Sort by timeframe and fold start
+    merged = merged.sort_values(["timeframe", "fold_start"])
+    
+    return merged
+
+
+def dataframe_to_fold_html(df: pd.DataFrame) -> str:
+    """Create fold-by-fold HTML tables by timeframe"""
+    if df.empty:
+        return ""
+    
+    html_parts = []
+    
+    timeframes = df["timeframe"].unique()
+    
+    for tf in sorted(timeframes):
+        tf_data = df[df["timeframe"] == tf]
+        
+        table_html = f"""
+        <div class="fold-details" id="fold-details-{tf.replace(' ', '_').replace(':', '_')}">
+            <h3>Fold Details - {tf} ({len(tf_data)} Folds)</h3>
+            <table border="1" class="dataframe fold-table">
+                <thead>
+                    <tr style="text-align: right; background: #3498db; color: white;">
+                        <th>Fold Period</th>
+                        <th>Buy & Hold %</th>
+                        <th>Baseline %</th>
+                        <th>New %</th>
+                        <th>New - Baseline Δ</th>
+                        <th>New - B&H Excess</th>
+                        <th>Baseline - B&H Δ</th>
+                        <th>Winner</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+        
+        for _, row in tf_data.iterrows():
+            fold_period = f"{row['fold_start'][:10]} - {row['fold_end'][:10]}"
+            
+            # Determine winner
+            if row['total_return_pct_new'] > row['total_return_pct_baseline']:
+                if row['total_return_pct_new'] > row['buy_hold_total_return_pct_new']:
+                    winner = "New ✓"
+                    winner_style = "background: #d5f4e6;"
+                else:
+                    winner = "B&H↑"
+                    winner_style = "background: #fff3cd;"
+            elif row['total_return_pct_baseline'] > row['buy_hold_total_return_pct_baseline']:
+                winner = "Baseline"
+                winner_style = "background: #f8d7da;"
+            else:
+                winner = "B&H↑"
+                winner_style = "background: #fff3cd;"
+            
+            table_html += f"""
+                    <tr style="{winner_style}">
+                        <td><span class="fold-toggle" data-target="fold-{tf.replace(' ', '_').replace(':', '_')}-{row.name}">{fold_period}</span></td>
+                        <td>{row['buy_hold_total_return_pct_new']:.2f}</td>
+                        <td>{row['total_return_pct_baseline']:.2f}</td>
+                        <td>{row['total_return_pct_new']:.2f}</td>
+                        <td>{row['diff_new_vs_baseline_pct']:+.2f}</td>
+                        <td>{row['diff_new_vs_buyhold_pct']:+.2f}</td>
+                        <td>{row['diff_baseline_vs_buyhold_pct']:+.2f}</td>
+                        <td><strong>{winner}</strong></td>
+                    </tr>
+            """
+        
+        # Add summary row
+        summary_new_mean = tf_data["total_return_pct_new"].mean()
+        summary_base_mean = tf_data["total_return_pct_baseline"].mean()
+        summary_buyhold_mean = tf_data["buy_hold_total_return_pct_new"].mean()
+        
+        table_html += f"""
+                    <tr style="background: #f8f9fa; font-weight: bold;">
+                        <td>Summary</td>
+                        <td>{summary_buyhold_mean:.2f}</td>
+                        <td>{summary_base_mean:.2f}</td>
+                        <td>{summary_new_mean:.2f}</td>
+                        <td>{summary_new_mean - summary_base_mean:+.2f}</td>
+                        <td>{summary_new_mean - summary_buyhold_mean:+.2f}</td>
+                        <td>{summary_base_mean - summary_buyhold_mean:+.2f}</td>
+                        <td>New {'✓' if summary_new_mean > max(summary_base_mean, summary_buyhold_mean) else '≈'}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        """
+        
+        html_parts.append(table_html)
+    
+    return "".join(html_parts)
+
+
 def dataframe_to_html(df: pd.DataFrame) -> str:
     return df.to_html(
         index=False,
@@ -722,6 +840,67 @@ p.meta {{
 .data-table td:first-child, .data-table th:first-child {{
     text-align: left;
 }}
+.fold-table {{
+    margin-top: 20px;
+    border-collapse: collapse;
+    width: 100%;
+}}
+.fold-table th, .fold-table td {{
+    border: 1px solid #dee2e6;
+    padding: 8px 12px;
+    text-align: right;
+    font-size: 14px;
+}}
+.fold-table th {{
+    background: #3498db;
+    color: white;
+    font-weight: bold;
+}}
+.fold-table td:first-child {{
+    text-align: left;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}}
+.fold-details {{
+    margin: 30px 0;
+    padding: 20px;
+    border: 1px solid #e3e6ea;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}}
+.fold-toggle {{
+    cursor: pointer;
+    color: #007bff;
+    font-family: monospace;
+    font-size: 12px;
+}}
+.fold-toggle:hover {{
+    text-decoration: underline;
+}}
+.performance-delta {{
+    font-weight: bold;
+}}
+.positive-delta {{
+    color: #28a745;
+}}
+.negative-delta {{
+    color: #dc3545;
+}}
+.neutral-delta {{
+    color: #6c757d;
+}}
+.win-new {{
+    background: #d4edda !important;
+}}
+.win-baseline {{
+    background: #f8d7da !important;
+}}
+.win-buyhold {{
+    background: #fff3cd !important;
+}}
 </style>
 </head>
 <body>
@@ -735,11 +914,23 @@ p.meta {{
 </div>
 """
 
+    # Load fold details if available
+    fold_df = None
+    fold_html = ""
+    if args.new_trades_csv and args.baseline_trades_csv:
+        fold_df = load_fold_details(Path(args.new_trades_csv), Path(args.baseline_trades_csv))
+        if fold_df is not None:
+            fold_html = dataframe_to_fold_html(fold_df)
+
     if comparison_html:
         page += """
 <h2>Walk-Forward Performance (1.5% fee)</h2>
 <p>Comparison of mean returns across folds for baseline vs new configuration.</p>
 """
+        # Add enhanced delta styling to comparison table
+        comparison_html = comparison_html.replace('New −', '<span class="performance-delta">New −')
+        comparison_html = comparison_html.replace(' Δ %</span>', '%</span>')
+        
         page += comparison_html
 
     if summary_html:
@@ -747,6 +938,13 @@ p.meta {{
 <h2>Segment Backtest Summary (Sequential, 1.5% fee)</h2>
 """
         page += summary_html
+    
+    if fold_html:
+        page += """
+<h2>Fold-by-Fold Details</h2>
+<p>Complete breakdown of individual fold performance with buy & hold comparison.</p>
+"""
+        page += fold_html
 
     page += """
 <script>
@@ -800,6 +998,33 @@ window.addEventListener('resize', () => {
 
 updateFullscreenLabel();
 setTimeout(resizeChart, 200);
+
+// Fold toggle functionality
+document.querySelectorAll('.fold-toggle').forEach(toggle => {
+  toggle.addEventListener('click', function() {
+    const targetId = this.getAttribute('data-target');
+    const target = document.getElementById(targetId);
+    if (target) {
+      target.style.display = target.style.display === 'none' ? 'table-row' : 'none';
+    }
+  });
+});
+
+// Add color coding to performance deltas
+document.querySelectorAll('.performance-delta').forEach(delta => {
+  const text = delta.textContent;
+  const value = parseFloat(text.match(/[-+]?\d+\.?\d+/)?.[0]);
+  if (!isNaN(value)) {
+    if (value > 0) {
+      delta.classList.add('positive-delta');
+    } else if (value < 0) {
+      delta.classList.add('negative-delta');
+    } else {
+      delta.classList.add('neutral-delta');
+    }
+  }
+});
+
 </script>
 </body>
 </html>
