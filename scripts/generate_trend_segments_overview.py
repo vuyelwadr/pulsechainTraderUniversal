@@ -27,18 +27,46 @@ TIMEFRAMES: List[str] = [
 ]
 
 STATE_COLORS_NEW: Dict[str, str] = {
-    "UPTREND": "rgba(46, 204, 113, 0.35)",
-    "DOWNTREND": "rgba(231, 76, 60, 0.35)",
-    "RANGE": "rgba(149, 165, 166, 0.25)",
-    "UNKNOWN": "rgba(189, 195, 199, 0.2)",
+    "UPTREND": "rgba(46, 204, 113, 0.12)",
+    "DOWNTREND": "rgba(231, 76, 60, 0.12)",
+    "RANGE": "rgba(149, 165, 166, 0.08)",
+    "UNKNOWN": "rgba(189, 195, 199, 0.08)",
 }
 
 STATE_COLORS_BASELINE: Dict[str, str] = {
-    "UPTREND": "rgba(46, 204, 113, 0.18)",
-    "DOWNTREND": "rgba(231, 76, 60, 0.18)",
-    "RANGE": "rgba(149, 165, 166, 0.12)",
-    "UNKNOWN": "rgba(189, 195, 199, 0.12)",
+    "UPTREND": "rgba(46, 204, 113, 0.08)",
+    "DOWNTREND": "rgba(231, 76, 60, 0.08)",
+    "RANGE": "rgba(149, 165, 166, 0.05)",
+    "UNKNOWN": "rgba(189, 195, 199, 0.05)",
 }
+
+
+def build_highlight_series(
+    state_df: Optional[pd.DataFrame],
+    segments_df: Optional[pd.DataFrame],
+) -> tuple[list, list]:
+    """Return timestamp/value lists that only include prices inside the segments."""
+    if state_df is None or segments_df is None or segments_df.empty:
+        return ([], [])
+
+    df = state_df.copy()
+    df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.tz_localize(None)
+    df["highlight"] = False
+
+    for _, seg in segments_df.iterrows():
+        start = seg["start_time"]
+        end = seg["end_time"]
+        if pd.isna(start) or pd.isna(end):
+            continue
+        df.loc[(df["timestamp"] >= start) & (df["timestamp"] <= end), "highlight"] = True
+
+    highlighted = df.loc[:, ["timestamp", "close", "highlight"]].copy()
+    highlighted["close"] = highlighted.apply(
+        lambda row: float(row["close"]) if row["highlight"] else None,
+        axis=1,
+    )
+
+    return highlighted["timestamp"].tolist(), highlighted["close"].tolist()
 
 
 def parse_args() -> argparse.Namespace:
@@ -205,6 +233,7 @@ def build_shapes(
                 "y1": y1,
                 "fillcolor": color,
                 "line": {"width": 0},
+                "layer": "below",
             }
         )
     return shapes
@@ -313,35 +342,34 @@ def load_walkforward_table(new_csv: Path, baseline_csv: Path) -> Optional[pd.Dat
 
 
 def load_fold_details(new_csv: Path, baseline_csv: Path) -> Optional[pd.DataFrame]:
-    """Load fold-by-fold details with buy-hold comparison"""
+    """Load fold-by-fold details with buy-hold comparison."""
     if not new_csv.exists() or not baseline_csv.exists():
         return None
-    
-    new_df = pd.read_csv(new_csv)
-    base_df = pd.read_csv(baseline_csv)
-    
-    # Check required columns in summary files
-    summary_cols = {"timeframe", "total_return_pct", "buy_hold_total_return_pct", "test_start", "test_end"}
-    if not all(col in new_df.columns for col in summary_cols):
+
+    new_df = pd.read_csv(new_csv, parse_dates=["test_start", "test_end"])
+    base_df = pd.read_csv(baseline_csv, parse_dates=["test_start", "test_end"])
+
+    required = {"timeframe", "total_return_pct", "buy_hold_total_return_pct", "test_start", "test_end"}
+    if not required.issubset(new_df.columns) or not required.issubset(base_df.columns):
         return None
-    if not all(col in base_df.columns for col in summary_cols):
-        return None
-    
-    # Merge dataframes on timeframe and test identifiers
+
     merged = new_df.merge(
         base_df,
         on=["timeframe", "test_start", "test_end"],
-        suffixes=("_new", "_baseline")
+        suffixes=("_new", "_baseline"),
     )
-    
-    # Calculate differences
+
     merged["diff_new_vs_baseline_pct"] = merged["total_return_pct_new"] - merged["total_return_pct_baseline"]
     merged["diff_new_vs_buyhold_pct"] = merged["total_return_pct_new"] - merged["buy_hold_total_return_pct_new"]
-    merged["diff_baseline_vs_buyhold_pct"] = merged["total_return_pct_baseline"] - merged["buy_hold_total_return_pct_baseline"]
-    
-    # Sort by timeframe and test start
-    merged = merged.sort_values(["timeframe", "test_start"])
-    
+    merged["diff_baseline_vs_buyhold_pct"] = (
+        merged["total_return_pct_baseline"] - merged["buy_hold_total_return_pct_baseline"]
+    )
+
+    merged["fold_start"] = merged["test_start"].dt.strftime("%Y-%m-%d %H:%M")
+    merged["fold_end"] = merged["test_end"].dt.strftime("%Y-%m-%d %H:%M")
+
+    merged.sort_values(["timeframe", "test_start"], inplace=True)
+    merged.reset_index(drop=True, inplace=True)
     return merged
 
 
@@ -490,6 +518,15 @@ def main() -> None:
                 if base_state is not None:
                     baseline_states[label] = base_state
 
+    new_highlights: Dict[str, tuple[list, list]] = {}
+    baseline_highlights: Dict[str, tuple[list, list]] = {}
+    for label in TIMEFRAMES:
+        new_highlights[label] = build_highlight_series(new_states.get(label), new_segments.get(label))
+        baseline_highlights[label] = build_highlight_series(
+            baseline_states.get(label),
+            baseline_segments.get(label),
+        )
+
     summary_df = compute_segment_summary(new_states, new_segments, cost=args.cost)
     if not summary_df.empty:
         price_series = price_df.sort_values("timestamp")
@@ -508,14 +545,23 @@ def main() -> None:
     new_markers = prepare_trade_markers(new_trades_df)
     baseline_markers = prepare_trade_markers(baseline_trades_df)
 
-    shapes_by_tf: Dict[str, List[dict]] = {}
-    for label in TIMEFRAMES:
-        shapes: List[dict] = []
-        if label in new_segments:
-            shapes.extend(build_shapes(new_segments[label], y0, y1, "y1", STATE_COLORS_NEW))
-        if label in baseline_segments:
-            shapes.extend(build_shapes(baseline_segments[label], y0, y1, "y2", STATE_COLORS_BASELINE))
-        shapes_by_tf[label] = shapes
+    shapes_by_tf: Dict[str, List[dict]] = {label: [] for label in TIMEFRAMES}
+
+    def pick_initial_timeframe() -> str:
+        preferred = "1h"
+        if preferred in TIMEFRAMES:
+            seg = new_segments.get(preferred)
+            base_seg = baseline_segments.get(preferred)
+            if (seg is not None and not seg.empty) or (base_seg is not None and not base_seg.empty):
+                return preferred
+        for tf in TIMEFRAMES:
+            seg = new_segments.get(tf)
+            base_seg = baseline_segments.get(tf)
+            if (seg is not None and not seg.empty) or (base_seg is not None and not base_seg.empty):
+                return tf
+        return TIMEFRAMES[0]
+
+    initial_label = pick_initial_timeframe()
 
     fig = make_subplots(
         rows=2,
@@ -526,10 +572,13 @@ def main() -> None:
         subplot_titles=("New Segments", "Baseline Segments" if baseline_segments else "Baseline Segments (not available)"),
     )
 
+    price_x = price_df["timestamp"].tolist()
+    price_y = price_df["price"].tolist()
+
     fig.add_trace(
         go.Scatter(
-            x=price_df["timestamp"],
-            y=price_df["price"],
+            x=price_x,
+            y=price_y,
             mode="lines",
             name="Price",
             line=dict(color="#34495e", width=1.6),
@@ -540,8 +589,8 @@ def main() -> None:
 
     fig.add_trace(
         go.Scatter(
-            x=price_df["timestamp"],
-            y=price_df["price"],
+            x=price_x,
+            y=price_y,
             mode="lines",
             name="Price (baseline)",
             line=dict(color="#7f8c8d", width=1.2, dash="dot"),
@@ -551,12 +600,46 @@ def main() -> None:
         col=1,
     )
 
+    highlight_initial = new_highlights.get(initial_label, ([], []))
     marker_indices: Dict[str, Optional[int]] = {
+        "new_highlight": None,
+        "baseline_highlight": None,
         "new_buy": None,
         "new_sell": None,
         "baseline_buy": None,
         "baseline_sell": None,
     }
+
+    marker_indices["new_highlight"] = len(fig.data)
+    fig.add_trace(
+        go.Scatter(
+            x=highlight_initial[0],
+            y=highlight_initial[1],
+            mode="lines",
+            name="New Uptrend (price)",
+            line=dict(color="#27ae60", width=2.4),
+            hoverinfo="skip",
+            showlegend=True,
+        ),
+        row=1,
+        col=1,
+    )
+
+    baseline_highlight_initial = baseline_highlights.get(initial_label, ([], []))
+    marker_indices["baseline_highlight"] = len(fig.data)
+    fig.add_trace(
+        go.Scatter(
+            x=baseline_highlight_initial[0],
+            y=baseline_highlight_initial[1],
+            mode="lines",
+            name="Baseline Uptrend (price)",
+            line=dict(color="#5dade2", width=2.0),
+            hoverinfo="skip",
+            showlegend=baseline_has_trades or bool(baseline_highlight_initial[0]),
+        ),
+        row=2,
+        col=1,
+    )
 
     marker_indices["new_buy"] = len(fig.data)
     fig.add_trace(
@@ -622,8 +705,6 @@ def main() -> None:
     fig.update_yaxes(title_text="Price", tickformat=".6f", row=2, col=1, range=[y0, y1])
     fig.update_xaxes(title_text="Time", row=2, col=1)
 
-    initial_label = "1h" if "1h" in shapes_by_tf and shapes_by_tf["1h"] else next((tf for tf in TIMEFRAMES if shapes_by_tf.get(tf)), TIMEFRAMES[0])
-
     new_initial = new_markers.get(initial_label, {"buy": ([], []), "sell": ([], [])})
     baseline_initial = baseline_markers.get(initial_label, {"buy": ([], []), "sell": ([], [])})
 
@@ -665,8 +746,22 @@ def main() -> None:
 
         x_update = [None] * len(fig.data)
         y_update = [None] * len(fig.data)
+
+        x_update[0] = price_x
+        y_update[0] = price_y
+        x_update[1] = price_x
+        y_update[1] = price_y
         marker_values = new_markers.get(label, {"buy": ([], []), "sell": ([], [])})
         baseline_values = baseline_markers.get(label, {"buy": ([], []), "sell": ([], [])})
+        highlight_values = new_highlights.get(label, ([], []))
+        baseline_highlight_values = baseline_highlights.get(label, ([], []))
+
+        if marker_indices["new_highlight"] is not None:
+            idx = marker_indices["new_highlight"]
+            x_update[idx], y_update[idx] = highlight_values
+        if marker_indices["baseline_highlight"] is not None:
+            idx = marker_indices["baseline_highlight"]
+            x_update[idx], y_update[idx] = baseline_highlight_values
 
         if marker_indices["new_buy"] is not None:
             idx = marker_indices["new_buy"]
@@ -714,33 +809,6 @@ def main() -> None:
         annotations=initial_annotations if initial_annotations else fig.layout.annotations,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=0.98),
     )
-
-    # Add legend entries for overlays using invisible markers
-    fig.add_trace(
-        go.Scatter(
-            x=[None],
-            y=[None],
-            mode="markers",
-            marker=dict(size=12, color=STATE_COLORS_NEW["UPTREND"], symbol="square"),
-            name="New UPTREND",
-            showlegend=True,
-        ),
-        row=1,
-        col=1,
-    )
-    if baseline_segments:
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                marker=dict(size=12, color=STATE_COLORS_BASELINE["UPTREND"], symbol="square"),
-                name="Baseline UPTREND",
-                showlegend=True,
-            ),
-            row=1,
-            col=1,
-        )
 
     plot_html = fig.to_html(include_plotlyjs="cdn", full_html=False)
 
