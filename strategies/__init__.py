@@ -7,3 +7,4 @@ from .momentum_regime_v3_fusion import MomentumRegimeV3Fusion  # noqa: F401
 from .volatility_breakout_strategy import VolatilityBreakoutStrategy  # noqa: F401
 from .range_scalper_strategy import RangeScalperStrategy  # noqa: F401
 from .adaptive_trend_hold_strategy import AdaptiveTrendHoldStrategy  # noqa: F401
+from .neural_adaptive_strategy import NeuralAdaptiveStrategy  # noqa: F401
