@@ -1,0 +1,65 @@
+[
+  {
+    "threshold_mode": "quantile_grid",
+    "threshold_grid": [0.3, 0.4, 0.5, 0.6, 0.7],
+    "trailing_mode": "atr",
+    "atr_mult": 2.0,
+    "atr_floor": 0.02,
+    "cooldown_bars": 3,
+    "require_strength_positive": false,
+    "per_timeframe": {
+      "5min": {"threshold_grid": [0.65, 0.7, 0.75], "cooldown_bars": 8, "atr_mult": 2.2},
+      "15min": {"threshold_grid": [0.6, 0.65, 0.7], "cooldown_bars": 6, "atr_mult": 2.1},
+      "30min": {"threshold_grid": [0.55, 0.6, 0.65], "cooldown_bars": 4, "atr_mult": 2.0},
+      "1h": {"threshold_grid": [0.5, 0.55, 0.6], "cooldown_bars": 3, "atr_mult": 1.9},
+      "2h": {"threshold_grid": [0.45, 0.5, 0.55], "cooldown_bars": 2, "atr_mult": 1.8},
+      "4h": {"threshold_grid": [0.4, 0.45, 0.5], "cooldown_bars": 1, "atr_mult": 1.7},
+      "8h": {"threshold_grid": [0.35, 0.4, 0.45], "cooldown_bars": 1, "atr_mult": 1.5},
+      "16h": {"threshold_grid": [0.3, 0.35, 0.4], "cooldown_bars": 1, "atr_mult": 1.4},
+      "1d": {"threshold_grid": [0.25, 0.3, 0.35], "cooldown_bars": 0, "atr_mult": 1.3},
+      "2d": {"threshold_grid": [0.2, 0.25, 0.3], "cooldown_bars": 0, "atr_mult": 1.2}
+    }
+  },
+  {
+    "threshold_mode": "quantile_grid",
+    "threshold_grid": [0.2, 0.35, 0.5, 0.65, 0.8],
+    "trailing_mode": "atr",
+    "atr_mult": 2.5,
+    "atr_floor": 0.015,
+    "cooldown_bars": 2,
+    "require_strength_positive": false,
+    "per_timeframe": {
+      "5min": {"threshold_grid": [0.55, 0.6, 0.65, 0.7, 0.75], "cooldown_bars": 5, "atr_mult": 2.5},
+      "15min": {"threshold_grid": [0.5, 0.55, 0.6, 0.65, 0.7], "cooldown_bars": 4, "atr_mult": 2.3},
+      "30min": {"threshold_grid": [0.45, 0.5, 0.55, 0.6, 0.65], "cooldown_bars": 3, "atr_mult": 2.2},
+      "1h": {"threshold_grid": [0.4, 0.45, 0.5, 0.55, 0.6], "cooldown_bars": 2, "atr_mult": 2.1},
+      "2h": {"threshold_grid": [0.35, 0.4, 0.45, 0.5, 0.55], "cooldown_bars": 1, "atr_mult": 2.0},
+      "4h": {"threshold_grid": [0.3, 0.35, 0.4, 0.45, 0.5], "cooldown_bars": 1, "atr_mult": 1.8},
+      "8h": {"threshold_grid": [0.25, 0.3, 0.35, 0.4, 0.45], "cooldown_bars": 1, "atr_mult": 1.6},
+      "16h": {"threshold_grid": [0.2, 0.25, 0.3, 0.35, 0.4], "cooldown_bars": 0, "atr_mult": 1.5},
+      "1d": {"threshold_grid": [0.15, 0.2, 0.25, 0.3, 0.35], "cooldown_bars": 0, "atr_mult": 1.4},
+      "2d": {"threshold_grid": [0.1, 0.15, 0.2, 0.25, 0.3], "cooldown_bars": 0, "atr_mult": 1.3}
+    }
+  },
+  {
+    "threshold_mode": "quantile_grid", 
+    "threshold_grid": [0.4, 0.5, 0.6, 0.7, 0.8],
+    "trailing_mode": "atr",
+    "atr_mult": 1.8,
+    "atr_floor": 0.025,
+    "cooldown_bars": 4,
+    "require_strength_positive": true,
+    "per_timeframe": {
+      "5min": {"threshold_grid": [0.75, 0.8, 0.85], "cooldown_bars": 10, "atr_mult": 1.8},
+      "15min": {"threshold_grid": [0.7, 0.75, 0.8], "cooldown_bars": 8, "atr_mult": 1.7},
+      "30min": {"threshold_grid": [0.65, 0.7, 0.75], "cooldown_bars": 6, "atr_mult": 1.6},
+      "1h": {"threshold_grid": [0.6, 0.65, 0.7], "cooldown_bars": 4, "atr_mult": 1.5},
+      "2h": {"threshold_grid": [0.55, 0.6, 0.65], "cooldown_bars": 3, "atr_mult": 1.5},
+      "4h": {"threshold_grid": [0.5, 0.55, 0.6], "cooldown_bars": 2, "atr_mult": 1.4},
+      "8h": {"threshold_grid": [0.45, 0.5, 0.55], "cooldown_bars": 2, "atr_mult": 1.3},
+      "16h": {"threshold_grid": [0.4, 0.45, 0.5], "cooldown_bars": 1, "atr_mult": 1.3},
+      "1d": {"threshold_grid": [0.35, 0.4, 0.45], "cooldown_bars": 1, "atr_mult": 1.2},
+      "2d": {"threshold_grid": [0.3, 0.35, 0.4], "cooldown_bars": 0, "atr_mult": 1.2}
+    }
+  }
+]
