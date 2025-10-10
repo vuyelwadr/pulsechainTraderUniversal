@@ -320,14 +320,17 @@ def load_fold_details(new_csv: Path, baseline_csv: Path) -> Optional[pd.DataFram
     new_df = pd.read_csv(new_csv)
     base_df = pd.read_csv(baseline_csv)
     
-    required_cols = {"timeframe", "total_return_pct", "buy_hold_total_return_pct", "fold_start", "fold_end"}
-    if not all(col in new_df.columns for col in required_cols) or not all(col in base_df.columns for col in required_cols):
+    # Check required columns in summary files
+    summary_cols = {"timeframe", "total_return_pct", "buy_hold_total_return_pct", "test_start", "test_end"}
+    if not all(col in new_df.columns for col in summary_cols):
+        return None
+    if not all(col in base_df.columns for col in summary_cols):
         return None
     
-    # Merge dataframes on timeframe and fold identifiers
+    # Merge dataframes on timeframe and test identifiers
     merged = new_df.merge(
         base_df,
-        on=["timeframe", "fold_start", "fold_end"],
+        on=["timeframe", "test_start", "test_end"],
         suffixes=("_new", "_baseline")
     )
     
@@ -336,8 +339,8 @@ def load_fold_details(new_csv: Path, baseline_csv: Path) -> Optional[pd.DataFram
     merged["diff_new_vs_buyhold_pct"] = merged["total_return_pct_new"] - merged["buy_hold_total_return_pct_new"]
     merged["diff_baseline_vs_buyhold_pct"] = merged["total_return_pct_baseline"] - merged["buy_hold_total_return_pct_baseline"]
     
-    # Sort by timeframe and fold start
-    merged = merged.sort_values(["timeframe", "fold_start"])
+    # Sort by timeframe and test start
+    merged = merged.sort_values(["timeframe", "test_start"])
     
     return merged
 
@@ -914,11 +917,11 @@ p.meta {{
 </div>
 """
 
-    # Load fold details if available
+    # Load fold details if available (using summary files with fold info)
     fold_df = None
     fold_html = ""
-    if args.new_trades_csv and args.baseline_trades_csv:
-        fold_df = load_fold_details(Path(args.new_trades_csv), Path(args.baseline_trades_csv))
+    if args.new_wf_csv and args.baseline_wf_csv:
+        fold_df = load_fold_details(Path(args.new_wf_csv), Path(args.baseline_wf_csv))
         if fold_df is not None:
             fold_html = dataframe_to_fold_html(fold_df)
 
