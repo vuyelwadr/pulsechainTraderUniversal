@@ -1,0 +1,28 @@
+{
+  "strategies_file": "/Users/ruwodda/Documents/Personal/Repos/pulsechainTraderUniversal/results/cost_optimized_strategies.json",
+  "objectives": [
+    "outperformance_alpha",
+    "positive_fold_ratio",
+    "win_rate"
+  ],
+  "calls": 500,
+  "trade_size": 10000.0,
+  "data_path": "/Users/ruwodda/Documents/Personal/Repos/pulsechainTraderUniversal/data/pdai_ohlcv_dai_730day_5m.csv",
+  "analysis_dir": "/Users/ruwodda/Documents/Personal/Repos/pulsechainTraderUniversal/analysis",
+  "stages": [
+    "90d"
+  ],
+  "cpu_fraction": 0.9,
+  "seed": null,
+  "created_at": "2025-10-10T11:41:38.156827+00:00",
+  "save_trades": false,
+  "walk_forward": {
+    "enabled": true,
+    "window_days": 90,
+    "step_days": 30,
+    "top_n": 5
+  },
+  "timeframes": [
+    "4h"
+  ]
+}
